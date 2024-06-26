@@ -2,7 +2,6 @@ package routes
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"strconv"
 
@@ -71,12 +70,11 @@ func CreatePapper(context *gin.Context) {
 
 	ghClient := githubclient.NewGitHubClient()
 	repoName := utils.FormatRepositoryName(strconv.FormatInt(userInfo.ID, 10) + "_" + papper.Name)
-	ghClient.DeleteRepo(repoName)
+	// ghClient.DeleteRepo(repoName)
 
 	repo, err := ghClient.CreateRepo(repoName, papper.Description, true)
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao criar repositório"})
-		log.Fatalf("Erro ao criar repositório: %v", err)
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao criar repositório. " + err.Error()})
 		return
 	}
 	fmt.Println("Repositório criado:", repo.GetHTMLURL())
@@ -85,8 +83,7 @@ func CreatePapper(context *gin.Context) {
 	readmeContent := "# " + papper.Name + "\n\n" + papper.Description
 	err = ghClient.CreateOrUpdateFile(repoName, userInfo.Email, userInfo.Name, readmePath, "initial README.md file", readmeContent)
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao criar ou atualizar o arquivo"})
-		log.Fatalf("Erro ao criar ou atualizar o arquivo (%s): %v", readmePath, err)
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao criar ou atualizar o arquivo. " + readmePath + err.Error()})
 		return
 	}
 	fmt.Printf("Arquivo criado ou atualizado com sucesso (%s)\n", readmePath)
@@ -97,4 +94,118 @@ func CreatePapper(context *gin.Context) {
 	}
 
 	context.JSON(http.StatusOK, gin.H{"message": "Paper created successfully"})
+}
+
+func GetFileUpdateList(context *gin.Context) {
+	var file fileStr
+	err := context.ShouldBindJSON(&file)
+
+	userInfoInterface, exists := context.Get("userInfo")
+	if !exists {
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Não foi possível recuperar as informações do usuário"})
+		return
+	}
+
+	userInfo, ok := userInfoInterface.(middlewares.UserBasicInfo)
+
+	if !ok {
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Não foi possível converter as informações do usuário"})
+		return
+	}
+	repoName := utils.FormatRepositoryName(strconv.FormatInt(userInfo.ID, 10) + "_" + file.Papper)
+
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
+		return
+	}
+	ghClient := githubclient.NewGitHubClient()
+	commits, err := ghClient.ListCommitsOfFile(repoName, file.Path)
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "file or project error." + err.Error()})
+		return
+	}
+	context.JSON(http.StatusOK, commits)
+
+}
+
+func GetCommitDiff(context *gin.Context) {
+
+	repo := context.Query("repo")
+	sha := context.Query("sha")
+	path := context.Query("path")
+	ghClient := githubclient.NewGitHubClient()
+	userInfoInterface, exists := context.Get("userInfo")
+	if !exists {
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Não foi possível recuperar as informações do usuário"})
+		return
+	}
+
+	userInfo, ok := userInfoInterface.(middlewares.UserBasicInfo)
+
+	if !ok {
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Não foi possível converter as informações do usuário"})
+		return
+	}
+
+	repoName := utils.FormatRepositoryName(strconv.FormatInt(userInfo.ID, 10) + "_" + repo)
+
+	commits, err := ghClient.GetCommitDiff(repoName, sha, path)
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	context.JSON(http.StatusOK, commits)
+
+}
+func GetFile(context *gin.Context) {
+	repo := context.Query("repo")
+	sha := context.Query("sha")
+	path := context.Query("path")
+
+	userInfoInterface, exists := context.Get("userInfo")
+	if !exists {
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Não foi possível recuperar as informações do usuário"})
+		return
+	}
+
+	userInfo, ok := userInfoInterface.(middlewares.UserBasicInfo)
+	if !ok {
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Não foi possível converter as informações do usuário"})
+		return
+	}
+	repoName := utils.FormatRepositoryName(strconv.FormatInt(userInfo.ID, 10) + "_" + repo)
+
+	if repo == "" || sha == "" || path == "" {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Missing required query parameters"})
+		return
+	}
+	ghClient := githubclient.NewGitHubClient()
+
+	content, err := ghClient.GetFileFromCommit(repoName, sha, path)
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	context.JSON(http.StatusOK, gin.H{"content": content})
+
+}
+
+type fileStr struct {
+	Papper string `json:"papper"`
+	Path   string `json:"path"`
+}
+
+func Test() {
+
+	ghClient := githubclient.NewGitHubClient()
+	repoName := utils.FormatRepositoryName(strconv.FormatInt(1, 10) + "_" + "Um Belo livro para ficar rico")
+	// ghClient.DeleteRepo(repoName)
+
+	readmePath := "README.md"
+	readmeContent := "# documento alterado para fins de teste"
+	_ = ghClient.CreateOrUpdateFile(repoName, "email@email.com", "gabriel", readmePath, "commit que sera exibido . :)", readmeContent)
+
+	fmt.Printf("Arquivo criado ou atualizado com sucesso (%s)\n", readmePath)
+
 }

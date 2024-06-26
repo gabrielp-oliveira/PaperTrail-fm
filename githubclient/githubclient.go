@@ -2,9 +2,13 @@ package githubclient
 
 import (
 	"context"
+	"encoding/base64"
+	"errors"
+	"fmt"
 	"log"
 	"os"
 
+	"PaperTrail-fm.com/utils"
 	"github.com/google/go-github/github"
 	"github.com/joho/godotenv"
 	"golang.org/x/oauth2"
@@ -51,7 +55,7 @@ func NewGitHubClient() *GitHubClient {
 
 // SetRepo define o repositório que será utilizado por operações subsequentes.
 func (gh *GitHubClient) SetRepo(repo string) {
-	gh.repo = repo
+	repo = repo
 }
 
 // CreateRepo cria um novo repositório no GitHub.
@@ -70,8 +74,8 @@ func (gh *GitHubClient) CreateRepo(name, description string, private bool) (*git
 }
 
 // GetFileContents obtém o conteúdo binário de um arquivo específico de um repositório.
-func (gh *GitHubClient) GetFileContents(path string) ([]byte, *github.RepositoryContent, error) {
-	fileContent, resp, _, err := gh.client.Repositories.GetContents(gh.ctx, gh.owner, gh.repo, path, nil)
+func (gh *GitHubClient) GetFileContents(path string, repo string) ([]byte, *github.RepositoryContent, error) {
+	fileContent, resp, _, err := gh.client.Repositories.GetContents(gh.ctx, gh.owner, repo, path, nil)
 	if err != nil {
 		log.Printf("Erro ao obter conteúdo do arquivo: %v, Resposta: %v", err, resp)
 		return nil, nil, err
@@ -141,7 +145,7 @@ func (gh *GitHubClient) DeleteRepo(repoName string) error {
 
 // CreateOrUpdateFile cria ou atualiza um arquivo em um repositório.
 func (gh *GitHubClient) CreateOrUpdateFile(repo string, userEmail string, userName string, path string, message, content string) error {
-	_, fileContent, err := gh.GetFileContents(path)
+	_, fileContent, err := gh.GetFileContents(path, repo)
 	if err != nil {
 		log.Printf("Arquivo não encontrado, criando novo: %v", err)
 		return gh.CreateFile(repo, userEmail, userName, path, message, content)
@@ -151,14 +155,75 @@ func (gh *GitHubClient) CreateOrUpdateFile(repo string, userEmail string, userNa
 }
 
 // ListCommitsOfFile lista os commits que modificaram um arquivo específico no repositório.
-func (gh *GitHubClient) ListCommitsOfFile(path string) ([]*github.RepositoryCommit, error) {
+func (gh *GitHubClient) ListCommitsOfFile(repo string, path string) ([]utils.ReducedCommit, error) {
 	opts := &github.CommitsListOptions{
 		Path: path,
 	}
-	commits, _, err := gh.client.Repositories.ListCommits(gh.ctx, gh.owner, gh.repo, opts)
+	commits, _, err := gh.client.Repositories.ListCommits(gh.ctx, gh.owner, repo, opts)
 	if err != nil {
-		log.Printf("Erro ao listar commits: %v", err)
 		return nil, err
 	}
-	return commits, nil
+	filteredCommits := utils.FilterCommits(commits)
+
+	return filteredCommits, nil
+}
+
+func (gh *GitHubClient) GetCommitDiff(repo string, sha string, path string) ([]*utils.FileChanges, error) {
+
+	commit, _, err := gh.client.Repositories.GetCommit(gh.ctx, gh.owner, repo, sha)
+	if err != nil {
+		log.Printf("Error getting commit: %v", err)
+		return nil, err
+	}
+
+	var files []*utils.FileChanges
+	var file utils.FileChanges
+	for _, f := range commit.Files {
+		if *f.Filename == path {
+			file.Filename = *f.Filename
+			file.Sha = *f.SHA
+			file.Additions = f.Additions
+			file.Deletions = f.Deletions
+			file.Changes = f.Changes
+			file.Status = *f.Status
+			file.Patch = *f.Patch
+			files = append(files, &file)
+		}
+	}
+
+	if len(files) == 0 {
+		return nil, errors.New("file not found in the specified commit")
+	}
+	return files, nil
+}
+
+func (gh *GitHubClient) GetFileFromCommit(repo string, sha string, path string) (string, error) {
+	commit, _, err := gh.client.Repositories.GetCommit(gh.ctx, gh.owner, repo, sha)
+	if err != nil {
+		return "", fmt.Errorf("error getting commit: %v", err)
+	}
+
+	var fileSHA string
+	for _, file := range commit.Files {
+		if *file.Filename == path {
+			fileSHA = *file.SHA
+			break
+		}
+	}
+
+	if fileSHA == "" {
+		return "", fmt.Errorf("file not found in the specified commit")
+	}
+
+	blob, _, err := gh.client.Git.GetBlob(gh.ctx, gh.owner, repo, fileSHA)
+	if err != nil {
+		return "", fmt.Errorf("error getting blob: %v", err)
+	}
+
+	content, err := base64.StdEncoding.DecodeString(*blob.Content)
+	if err != nil {
+		return "", fmt.Errorf("error decoding content: %v", err)
+	}
+
+	return string(content), nil
 }
