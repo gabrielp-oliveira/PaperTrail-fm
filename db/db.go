@@ -39,9 +39,11 @@ func InitDB() {
 func createTables(db *sql.DB) {
 	createUsersTable := `
 CREATE TABLE IF NOT EXISTS users (
-	id SERIAL PRIMARY KEY,
-	email TEXT NOT NULL UNIQUE,
-	password TEXT NOT NULL
+    id BIGSERIAL PRIMARY KEY,
+	name TEXT NOT NULL,
+    email TEXT NOT NULL UNIQUE,
+    password TEXT NOT NULL,
+    created_at TIMESTAMP NOT NULL
 );
 `
 
@@ -50,35 +52,21 @@ CREATE TABLE IF NOT EXISTS users (
 		log.Fatalf("Could not create users table: %v", err)
 	}
 
-	createEventsTable := `
-CREATE TABLE IF NOT EXISTS events (
+	createPappersTable := `
+CREATE TABLE IF NOT EXISTS pappers (
 	id SERIAL PRIMARY KEY,
 	name TEXT NOT NULL,
 	description TEXT NOT NULL,
-	location TEXT NOT NULL,
+	path TEXT NOT NULL,
 	dateTime TIMESTAMP NOT NULL,
-	user_id INTEGER,
+	user_id BIGSERIAL,
 	FOREIGN KEY(user_id) REFERENCES users(id)
 );
 `
 
-	_, err = db.Exec(createEventsTable)
+	_, err = db.Exec(createPappersTable)
 	if err != nil {
-		log.Fatalf("Could not create events table: %v", err)
+		log.Fatalf("Could not create pappers table: %v", err)
 	}
 
-	createRegistrationsTable := `
-CREATE TABLE IF NOT EXISTS registrations (
-	id SERIAL PRIMARY KEY,
-	event_id INTEGER,
-	user_id INTEGER,
-	FOREIGN KEY(event_id) REFERENCES events(id),
-	FOREIGN KEY(user_id) REFERENCES users(id)
-);
-`
-
-	_, err = db.Exec(createRegistrationsTable)
-	if err != nil {
-		log.Fatalf("Could not create registrations table: %v", err)
-	}
 }

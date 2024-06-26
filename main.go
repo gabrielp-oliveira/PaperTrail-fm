@@ -7,6 +7,7 @@ import (
 
 	"PaperTrail-fm.com/s3Instance"
 
+	"PaperTrail-fm.com/db"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 )
@@ -18,7 +19,7 @@ func main() {
 	}
 
 	s3Instance.InitS3()
-	// db.InitDB()
+	db.InitDB()
 	server := gin.Default()
 
 	routes.RegisterRoutes(server)

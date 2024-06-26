@@ -1,6 +1,8 @@
 package models
 
 import (
+	"database/sql"
+	"fmt"
 	"time"
 
 	"PaperTrail-fm.com/db"
@@ -16,21 +18,33 @@ type Papper struct {
 }
 
 func (e *Papper) Save() error {
-	query := `
-	INSERT INTO pappers(name, description, path, dateTime, user_id) 
-	VALUES (?, ?, ?, ?, ?)`
-	stmt, err := db.DB.Prepare(query)
-	if err != nil {
-		return err
+	var papperId int
+
+	// Verifica se o papper já existe no banco de dados
+	query := `SELECT id FROM pappers WHERE name = $1 AND user_id = $2`
+	err := db.DB.QueryRow(query, e.Name, e.UserID).Scan(&papperId)
+
+	if err != nil && err != sql.ErrNoRows {
+		// Se ocorrer um erro diferente de "sem linhas encontradas", retorna o erro
+		return fmt.Errorf("error checking papper existence: %v", err)
 	}
-	defer stmt.Close()
-	result, err := stmt.Exec(e.Name, e.Description, e.Path, e.DateTime, e.UserID)
-	if err != nil {
-		return err
+
+	if err == sql.ErrNoRows {
+		// Se não há linhas (papper não existe), insere um novo registro
+		insertQuery := `
+		INSERT INTO pappers(name, description, path, dateTime, user_id) 
+		VALUES ($1, $2, $3, $4, $5)`
+		_, err := db.DB.Exec(insertQuery, e.Name, e.Description, e.Path, e.DateTime, e.UserID)
+		if err != nil {
+			return fmt.Errorf("error inserting papper: %v", err)
+		}
+
+		fmt.Println("Inserted new papper into database")
+	} else {
+		fmt.Println("Papper already exists in database")
 	}
-	id, err := result.LastInsertId()
-	e.ID = id
-	return err
+
+	return nil
 }
 
 func GetAllPappers() ([]Papper, error) {
@@ -99,35 +113,5 @@ func (papper Papper) Delete() error {
 	defer stmt.Close()
 
 	_, err = stmt.Exec(papper.ID)
-	return err
-}
-
-func (e Papper) Register(userId int64) error {
-	query := "INSERT INTO registrations(event_id, user_id) VALUES (?, ?)"
-	stmt, err := db.DB.Prepare(query)
-
-	if err != nil {
-		return err
-	}
-
-	defer stmt.Close()
-
-	_, err = stmt.Exec(e.ID, userId)
-
-	return err
-}
-
-func (e Papper) CancelRegistration(userId int64) error {
-	query := "DELETE FROM registrations WHERE event_id = ? AND user_id = ?"
-	stmt, err := db.DB.Prepare(query)
-
-	if err != nil {
-		return err
-	}
-
-	defer stmt.Close()
-
-	_, err = stmt.Exec(e.ID, userId)
-
 	return err
 }
