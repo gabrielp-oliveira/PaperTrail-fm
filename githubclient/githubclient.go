@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 
 	"PaperTrail-fm.com/utils"
 	"github.com/google/go-github/github"
@@ -111,7 +112,14 @@ func (gh *GitHubClient) CreateFile(repo string, userEmail string, userName strin
 }
 
 // UpdateFile atualiza um arquivo em um repositório.
-func (gh *GitHubClient) UpdateFile(repo string, userEmail string, userName string, path, message, content, sha string) error {
+func (gh *GitHubClient) UpdateFile(repo string, userEmail string, userName string, path, message, content string) error {
+
+	_, fileContent, err := gh.GetFileContents(path, repo)
+	if err != nil {
+		return err
+	}
+	sha := fileContent.GetSHA()
+
 	opts := &github.RepositoryContentFileOptions{
 		Message: github.String(message),
 		Content: []byte(content),
@@ -145,13 +153,20 @@ func (gh *GitHubClient) DeleteRepo(repoName string) error {
 
 // CreateOrUpdateFile cria ou atualiza um arquivo em um repositório.
 func (gh *GitHubClient) CreateOrUpdateFile(repo string, userEmail string, userName string, path string, message, content string) error {
-	_, fileContent, err := gh.GetFileContents(path, repo)
+	_, _, err := gh.GetFileContents(path, repo)
 	if err != nil {
 		log.Printf("Arquivo não encontrado, criando novo: %v", err)
 		return gh.CreateFile(repo, userEmail, userName, path, message, content)
 	}
-	sha := fileContent.GetSHA()
-	return gh.UpdateFile(repo, userEmail, userName, path, message, content, sha)
+	return gh.UpdateFile(repo, userEmail, userName, path, message, content)
+}
+func (gh *GitHubClient) createFile(repo string, userEmail string, userName string, path string) error {
+	_, _, err := gh.GetFileContents(path, repo)
+	if err != nil {
+		log.Printf("Arquivo não encontrado, criando novo: %v", err)
+		return gh.CreateFile(repo, userEmail, userName, path, "initial File", "")
+	}
+	return nil
 }
 
 // ListCommitsOfFile lista os commits que modificaram um arquivo específico no repositório.
@@ -197,10 +212,10 @@ func (gh *GitHubClient) GetCommitDiff(repo string, sha string, path string) ([]*
 	return files, nil
 }
 
-func (gh *GitHubClient) GetFileFromCommit(repo string, sha string, path string) (string, error) {
+func (gh *GitHubClient) GetFileFromCommit(repo string, sha string, path string) (string, string, error) {
 	commit, _, err := gh.client.Repositories.GetCommit(gh.ctx, gh.owner, repo, sha)
 	if err != nil {
-		return "", fmt.Errorf("error getting commit: %v", err)
+		return "", "", fmt.Errorf("error getting commit: %v", err)
 	}
 
 	var fileSHA string
@@ -212,18 +227,18 @@ func (gh *GitHubClient) GetFileFromCommit(repo string, sha string, path string) 
 	}
 
 	if fileSHA == "" {
-		return "", fmt.Errorf("file not found in the specified commit")
+		return "", "", fmt.Errorf("file not found in the specified commit")
 	}
 
 	blob, _, err := gh.client.Git.GetBlob(gh.ctx, gh.owner, repo, fileSHA)
 	if err != nil {
-		return "", fmt.Errorf("error getting blob: %v", err)
+		return "", "", fmt.Errorf("error getting blob: %v", err)
 	}
 
 	content, err := base64.StdEncoding.DecodeString(*blob.Content)
 	if err != nil {
-		return "", fmt.Errorf("error decoding content: %v", err)
+		return "", "", fmt.Errorf("error decoding content: %v", err)
 	}
 
-	return string(content), nil
+	return string(content), filepath.Ext(path), nil
 }
