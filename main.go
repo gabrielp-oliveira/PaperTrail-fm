@@ -5,8 +5,6 @@ import (
 
 	routes "PaperTrail-fm.com/routers"
 
-	"PaperTrail-fm.com/s3Instance"
-
 	"PaperTrail-fm.com/db"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -18,7 +16,7 @@ func main() {
 		log.Fatal("Error loading .env file")
 	}
 
-	s3Instance.InitS3()
+	// s3Instance.InitS3()
 	db.InitDB()
 	server := gin.Default()
 

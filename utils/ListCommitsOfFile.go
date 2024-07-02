@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"errors"
+	"sort"
 	"time"
 
 	"github.com/google/go-github/github"
@@ -46,6 +48,26 @@ func FilterCommits(commits []*github.RepositoryCommit) []ReducedCommit {
 	}
 	return filteredCommits
 }
+func FindPreviousSHA(commits []ReducedCommit, sha string) (string, error) {
+	// Ordenar os commits pela data
+	sort.Slice(commits, func(i, j int) bool {
+		dateI, errI := time.Parse(time.RFC3339, commits[i].Commit.Author.Date)
+		dateJ, errJ := time.Parse(time.RFC3339, commits[j].Commit.Author.Date)
+		if errI != nil || errJ != nil {
+			return false
+		}
+		return dateI.Before(dateJ)
+	})
+
+	// Encontrar o commit com o SHA fornecido e retornar o SHA anterior
+	for i := 1; i < len(commits); i++ {
+		if commits[i].SHA == sha {
+			return commits[i-1].SHA, nil
+		}
+	}
+
+	return "", errors.New("SHA não encontrado ou é o primeiro commit")
+}
 
 type FileChanges struct {
 	Sha       string
@@ -55,4 +77,5 @@ type FileChanges struct {
 	Changes   *int `json:"changes,omitempty"`
 	Status    string
 	Patch     string
+	Diff      *[]string `json:"diff,omitempty"`
 }

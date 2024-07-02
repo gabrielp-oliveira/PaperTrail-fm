@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -201,9 +202,32 @@ func (gh *GitHubClient) GetCommitDiff(repo string, sha string, path string) ([]*
 			file.Deletions = f.Deletions
 			file.Changes = f.Changes
 			file.Status = *f.Status
-			file.Patch = *f.Patch
-			files = append(files, &file)
 		}
+
+		if filepath.Ext(*f.Filename) == ".docx" {
+
+			currentTempFilePath, _, err := gh.GetFileFromCommitTemp(repo, sha, path)
+			if err != nil {
+				return nil, fmt.Errorf("error getting current file content: %v", err)
+			}
+
+			previousTempFilePath, err := gh.GetPreviousFileTemp(repo, sha, path)
+			if err != nil {
+				return nil, fmt.Errorf("error getting previous file content: %v", err)
+			}
+
+			diff, err := GetDocxDiff(currentTempFilePath, previousTempFilePath)
+			file.Diff = diff
+			if err != nil {
+				return nil, fmt.Errorf(" %v", err)
+			}
+		} else {
+			if f.Patch != nil {
+				file.Patch = *f.Patch
+			}
+		}
+		files = append(files, &file)
+
 	}
 
 	if len(files) == 0 {
@@ -212,7 +236,53 @@ func (gh *GitHubClient) GetCommitDiff(repo string, sha string, path string) ([]*
 	return files, nil
 }
 
-func (gh *GitHubClient) GetFileFromCommit(repo string, sha string, path string) (string, string, error) {
+func (gh *GitHubClient) GetFileFromCommit(repo string, sha string, path string) ([]byte, string, error) {
+	commit, _, err := gh.client.Repositories.GetCommit(gh.ctx, gh.owner, repo, sha)
+	if err != nil {
+		return nil, "", fmt.Errorf("error getting commit: %v", err)
+	}
+	var fileSHA string
+	for _, file := range commit.Files {
+		if *file.Filename == path {
+			fileSHA = *file.SHA
+			break
+		}
+	}
+	if fileSHA == "" {
+		return nil, "", fmt.Errorf("file not found in the specified commit")
+	}
+	blob, _, err := gh.client.Git.GetBlob(gh.ctx, gh.owner, repo, fileSHA)
+	if err != nil {
+		return nil, "", fmt.Errorf("error getting blob: %v", err)
+	}
+	content, err := base64.StdEncoding.DecodeString(*blob.Content)
+	if err != nil {
+		return nil, "", fmt.Errorf("error decoding content: %v", err)
+	}
+	return content, filepath.Ext(path), nil
+}
+
+func (gh *GitHubClient) GetPreviousFileTemp(repo string, sha string, path string) (string, error) {
+
+	commitList, err := gh.ListCommitsOfFile(repo, path)
+	if err != nil {
+		return "", err
+	}
+
+	lastSha, err := utils.FindPreviousSHA(commitList, sha)
+	if err != nil {
+		return "", err
+	}
+
+	filePath, _, err := gh.GetFileFromCommitTemp(repo, lastSha, path)
+
+	if err != nil {
+		return "", err
+	}
+	return filePath, nil
+}
+
+func (gh *GitHubClient) GetFileFromCommitTemp(repo string, sha string, path string) (string, string, error) {
 	commit, _, err := gh.client.Repositories.GetCommit(gh.ctx, gh.owner, repo, sha)
 	if err != nil {
 		return "", "", fmt.Errorf("error getting commit: %v", err)
@@ -240,5 +310,18 @@ func (gh *GitHubClient) GetFileFromCommit(repo string, sha string, path string) 
 		return "", "", fmt.Errorf("error decoding content: %v", err)
 	}
 
-	return string(content), filepath.Ext(path), nil
+	// Cria um arquivo temporário
+	tmpFile, err := ioutil.TempFile("", "document-*.docx")
+	if err != nil {
+		return "", "", fmt.Errorf("error creating temporary file: %v", err)
+	}
+	defer tmpFile.Close()
+
+	// Escreve o conteúdo decodificado no arquivo temporário
+	if _, err := tmpFile.Write(content); err != nil {
+		return "", "", fmt.Errorf("error writing to temporary file: %v", err)
+	}
+
+	// Retorna o caminho do arquivo temporário e sua extensão
+	return tmpFile.Name(), filepath.Ext(path), nil
 }

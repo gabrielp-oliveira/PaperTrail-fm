@@ -188,7 +188,11 @@ func GetFile(context *gin.Context) {
 		return
 	}
 
-	context.JSON(http.StatusOK, gin.H{"content": content, "extension": ext})
+	context.Header("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+	context.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s%s", "file", ext))
+
+	// Envie o conteúdo do arquivo como resposta
+	context.Data(http.StatusOK, "application/vnd.openxmlformats-officedocument.wordprocessingml.document", content)
 }
 
 func CreateFile(context *gin.Context) {
