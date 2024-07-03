@@ -154,6 +154,12 @@ func GetCommitDiff(context *gin.Context) {
 		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
+	context.Header("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+	context.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s", commits.Filename))
+
+	context.Data(http.StatusOK, "application/vnd.openxmlformats-officedocument.wordprocessingml.document", commits.Docx)
+
 	context.JSON(http.StatusOK, commits)
 
 }
@@ -191,7 +197,6 @@ func GetFile(context *gin.Context) {
 	context.Header("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
 	context.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s%s", "file", ext))
 
-	// Envie o conteúdo do arquivo como resposta
 	context.Data(http.StatusOK, "application/vnd.openxmlformats-officedocument.wordprocessingml.document", content)
 }
 

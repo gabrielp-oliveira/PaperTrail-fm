@@ -21,7 +21,6 @@ type GitHubClient struct {
 	client *github.Client
 	ctx    context.Context
 	owner  string
-	repo   string
 }
 
 // NewGitHubClient cria uma nova instância de GitHubClient autenticada com o token fornecido.
@@ -53,11 +52,6 @@ func NewGitHubClient() *GitHubClient {
 		ctx:    ctx,
 		owner:  owner,
 	}
-}
-
-// SetRepo define o repositório que será utilizado por operações subsequentes.
-func (gh *GitHubClient) SetRepo(repo string) {
-	repo = repo
 }
 
 // CreateRepo cria um novo repositório no GitHub.
@@ -161,14 +155,6 @@ func (gh *GitHubClient) CreateOrUpdateFile(repo string, userEmail string, userNa
 	}
 	return gh.UpdateFile(repo, userEmail, userName, path, message, content)
 }
-func (gh *GitHubClient) createFile(repo string, userEmail string, userName string, path string) error {
-	_, _, err := gh.GetFileContents(path, repo)
-	if err != nil {
-		log.Printf("Arquivo não encontrado, criando novo: %v", err)
-		return gh.CreateFile(repo, userEmail, userName, path, "initial File", "")
-	}
-	return nil
-}
 
 // ListCommitsOfFile lista os commits que modificaram um arquivo específico no repositório.
 func (gh *GitHubClient) ListCommitsOfFile(repo string, path string) ([]utils.ReducedCommit, error) {
@@ -184,7 +170,7 @@ func (gh *GitHubClient) ListCommitsOfFile(repo string, path string) ([]utils.Red
 	return filteredCommits, nil
 }
 
-func (gh *GitHubClient) GetCommitDiff(repo string, sha string, path string) ([]*utils.FileChanges, error) {
+func (gh *GitHubClient) GetCommitDiff(repo string, sha string, path string) (*utils.FileChanges, error) {
 
 	commit, _, err := gh.client.Repositories.GetCommit(gh.ctx, gh.owner, repo, sha)
 	if err != nil {
@@ -216,11 +202,19 @@ func (gh *GitHubClient) GetCommitDiff(repo string, sha string, path string) ([]*
 				return nil, fmt.Errorf("error getting previous file content: %v", err)
 			}
 
-			diff, err := GetDocxDiff(currentTempFilePath, previousTempFilePath)
-			file.Diff = diff
+			diff, docxPath, err := GetDocxDiff(currentTempFilePath, previousTempFilePath)
 			if err != nil {
 				return nil, fmt.Errorf(" %v", err)
 			}
+
+			docx, err := os.ReadFile(docxPath)
+			if err != nil {
+				return nil, fmt.Errorf(" %v", err)
+			}
+			file.Diff = diff
+
+			file.Docx = docx
+
 		} else {
 			if f.Patch != nil {
 				file.Patch = *f.Patch
@@ -233,7 +227,7 @@ func (gh *GitHubClient) GetCommitDiff(repo string, sha string, path string) ([]*
 	if len(files) == 0 {
 		return nil, errors.New("file not found in the specified commit")
 	}
-	return files, nil
+	return files[0], nil
 }
 
 func (gh *GitHubClient) GetFileFromCommit(repo string, sha string, path string) ([]byte, string, error) {

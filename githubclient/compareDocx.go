@@ -2,6 +2,7 @@ package githubclient
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"baliance.com/gooxml/document"
@@ -56,8 +57,15 @@ func highlightDiffs(line1, line2 string) (string, string) {
 	return highlightedLine1.String(), highlightedLine2.String()
 }
 
+// markParagraph marca um parágrafo específico
+func markParagraph(para *document.Paragraph, markText string) {
+	run := para.AddRun()
+	run.AddText(markText)
+	run.Properties().SetBold(true)
+}
+
 // compareTexts compara o texto de dois documentos e retorna as diferenças como uma lista de strings
-func compareTexts(lines1 []string, pages1 []int, lines2 []string, pages2 []int) []string {
+func compareTexts(doc1 *document.Document, doc2 *document.Document, lines1 []string, pages1 []int, lines2 []string) []string {
 	var differences []string
 	maxLines := len(lines1)
 	if len(lines2) > maxLines {
@@ -75,7 +83,6 @@ func compareTexts(lines1 []string, pages1 []int, lines2 []string, pages2 []int) 
 		}
 		if i < len(lines2) {
 			line2 = lines2[i]
-
 		}
 
 		if line1 != line2 {
@@ -97,39 +104,64 @@ func compareTexts(lines1 []string, pages1 []int, lines2 []string, pages2 []int) 
 			if line1 == "" {
 				// Linha adicionada
 				differences = append(differences, fmt.Sprintf("<pre class=\"line-insert\">+ %s</pre>", line2))
+				if i < len(doc2.Paragraphs()) {
+					markParagraph(&doc2.Paragraphs()[i], "Linha adicionada")
+				}
 			} else if line2 == "" {
 				// Linha deletada
 				differences = append(differences, fmt.Sprintf("<pre class=\"line-delete\">- %s</pre>", line1))
+				if i < len(doc1.Paragraphs()) {
+					markParagraph(&doc1.Paragraphs()[i], "Linha deletada")
+				}
 			} else {
 				// Linha alterada
 				highlightedLine1, highlightedLine2 := highlightDiffs(line1, line2)
 				differences = append(differences, fmt.Sprintf("<pre class=\"line-delete\">- %s</pre>", highlightedLine1))
 				differences = append(differences, fmt.Sprintf("<pre class=\"line-insert\">+ %s</pre>", highlightedLine2))
+				if i < len(doc2.Paragraphs()) {
+					markParagraph(&doc2.Paragraphs()[i], "Linha alterada")
+				}
 			}
 
-			differences = append(differences, fmt.Sprintf("</div>"))
+			differences = append(differences, "</div>")
 		}
 	}
 
 	return differences
 }
 
-func GetDocxDiff(filePath1 string, filePath2 string) (*[]string, error) {
-	// Caminhos dos arquivos DOCX
-
-	// Ler o conteúdo de texto dos arquivos
+func GetDocxDiff(filePath1 string, filePath2 string) (*[]string, string, error) {
 	text1, pages1, err := readDocxText(filePath1)
 	if err != nil {
-		return nil, fmt.Errorf("Erro ao ler o arquivo %s: %v", filePath1, err)
-
+		return nil, "", fmt.Errorf("erro ao ler o arquivo %s: %v", filePath1, err)
 	}
 
-	text2, pages2, err := readDocxText(filePath2)
+	text2, _, err := readDocxText(filePath2)
 	if err != nil {
-		return nil, fmt.Errorf("Erro ao ler o arquivo %s: %v", filePath1, err)
+		return nil, "", fmt.Errorf("erro ao ler o arquivo %s: %v", filePath2, err)
 	}
 
-	// Comparar os textos e obter as diferenças como uma lista de strings
-	differences := compareTexts(text1, pages1, text2, pages2)
-	return &differences, nil
+	doc1, err := document.Open(filePath1)
+	if err != nil {
+		return nil, "", fmt.Errorf("erro ao abrir o arquivo %s: %v", filePath1, err)
+	}
+
+	doc2, err := document.Open(filePath2)
+	if err != nil {
+		return nil, "", fmt.Errorf("erro ao abrir o arquivo %s: %v", filePath2, err)
+	}
+
+	differences := compareTexts(doc1, doc2, text1, pages1, text2)
+
+	tmpFile, err := os.CreateTemp("", "document-*.docx")
+	if err != nil {
+		return nil, "", fmt.Errorf("erro ao criar arquivo temporário: %v", err)
+	}
+	defer tmpFile.Close()
+
+	if err := doc2.SaveToFile(tmpFile.Name()); err != nil {
+		return nil, "", fmt.Errorf("erro ao salvar documento modificado: %v", err)
+	}
+
+	return &differences, tmpFile.Name(), nil
 }

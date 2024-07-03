@@ -78,4 +78,5 @@ type FileChanges struct {
 	Status    string
 	Patch     string
 	Diff      *[]string `json:"diff,omitempty"`
+	Docx      []byte    `json:"docx,omitempty"`
 }
