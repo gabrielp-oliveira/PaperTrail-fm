@@ -10,14 +10,19 @@ import (
 func RegisterRoutes(server *gin.Engine) {
 	authenticated := server.Group("/")
 	authenticated.Use(middlewares.Authenticate)
-	// authenticated.GET("/GetAllPappers", GetAllPappers)
 
-	authenticated.POST("/createPapper", CreatePapper)
-	authenticated.POST("/GetFileUpdateList", GetFileUpdateList)
-	authenticated.GET("/GetCommitDiff", GetCommitDiff)
-	authenticated.GET("/getFile", GetFile)
-	authenticated.POST("/createFile", CreateFile)
-	authenticated.POST("/updateFile", UpdateFile)
+	authenticated.POST("/CreateRootPapper", CreateRootPapper)
+
+	authenticatedPapper := authenticated.Use(middlewares.PapperInfo)
+	authenticatedPapper.POST("/createPapper", CreatePapper)
+
+	// authenticated.POST("/GetFileUpdateList", GetFileUpdateList)
+	// authenticated.GET("/GetCommitDiff", GetCommitDiff)
+	// authenticated.GET("/getFile", GetFile)
+	// authenticated.POST("/createFile", CreateFile)
+	// authenticated.POST("/updateFile", UpdateFile)
+	// authenticated.POST("/GetFileList", GetFileList)
+	// authenticated.POST("/GetDocxIdByProject", GetDocxIdByProject)
 
 	server.GET("/Upload", models.Upload)
 	server.GET("/download", models.Download)

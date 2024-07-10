@@ -39,11 +39,35 @@ func InitDB() {
 func createTables(db *sql.DB) {
 	createUsersTable := `
 CREATE TABLE IF NOT EXISTS users (
-    id BIGSERIAL PRIMARY KEY,
+    id TEXT PRIMARY KEY,
 	name TEXT NOT NULL,
     email TEXT NOT NULL UNIQUE,
     password TEXT NOT NULL,
-    created_at TIMESTAMP NOT NULL
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	    accessToken TEXT,
+    refresh_token TEXT,
+    token_expiry TIMESTAMP
+);
+`
+
+	createRootProjectTable := `
+CREATE TABLE IF NOT EXISTS rootpappers (
+	id TEXT PRIMARY KEY,
+	name TEXT NOT NULL,
+	created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	user_id TEXT,
+	FOREIGN KEY(user_id) REFERENCES users(id)
+);
+`
+	createPappersTable := `
+CREATE TABLE IF NOT EXISTS pappers (
+	id TEXT PRIMARY KEY,
+	name TEXT NOT NULL,
+	description TEXT NOT NULL,
+	path TEXT NOT NULL,
+	created_at TIMESTAMP NOT NULL,
+	root_papper_id TEXT,
+	FOREIGN KEY(root_papper_id) REFERENCES rootpappers(id)
 );
 `
 
@@ -51,18 +75,10 @@ CREATE TABLE IF NOT EXISTS users (
 	if err != nil {
 		log.Fatalf("Could not create users table: %v", err)
 	}
-
-	createPappersTable := `
-CREATE TABLE IF NOT EXISTS pappers (
-	id SERIAL PRIMARY KEY,
-	name TEXT NOT NULL,
-	description TEXT NOT NULL,
-	path TEXT NOT NULL,
-	dateTime TIMESTAMP NOT NULL,
-	user_id BIGSERIAL,
-	FOREIGN KEY(user_id) REFERENCES users(id)
-);
-`
+	_, err = db.Exec(createRootProjectTable)
+	if err != nil {
+		log.Fatalf("Could not create Rootpappers table: %v", err)
+	}
 
 	_, err = db.Exec(createPappersTable)
 	if err != nil {

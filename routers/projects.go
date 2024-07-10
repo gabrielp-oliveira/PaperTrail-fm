@@ -1,15 +1,16 @@
 package routes
 
 import (
+	"context"
 	"fmt"
 	"net/http"
-	"strconv"
 
-	"PaperTrail-fm.com/db"
 	"PaperTrail-fm.com/githubclient"
-	"PaperTrail-fm.com/middlewares"
+	"PaperTrail-fm.com/googleClient"
 	"PaperTrail-fm.com/models"
 	"PaperTrail-fm.com/utils"
+	"google.golang.org/api/drive/v3"
+	"google.golang.org/api/option"
 
 	"github.com/gin-gonic/gin"
 )
@@ -19,105 +20,61 @@ type basicPapperStructure struct {
 	Name        string `json:"name" binding:"required"`
 }
 
-func GetAllPappers(context *gin.Context) {
-	userId := context.GetInt64("userId")
+var googleOauthConfig = googleClient.StartCredentials()
 
-	query := "SELECT * FROM pappers WHERE UserID = ?"
-	rows, err := db.DB.Query(query, userId)
-	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to query database"})
-		return
-	}
-	defer rows.Close()
-
-	var pappers []models.Papper
-	for rows.Next() {
-		var papper models.Papper
-		if err := rows.Scan(&papper.ID, &papper.Name, &papper.Description, &papper.UserID); err != nil {
-			context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to scan row"})
-			return
-		}
-		pappers = append(pappers, papper)
-	}
-
-	context.JSON(http.StatusOK, pappers)
-}
-
-func CreatePapper(context *gin.Context) {
-	var basicPapper basicPapperStructure
-	if err := context.ShouldBindJSON(&basicPapper); err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
-		return
-	}
-
-	userInfoInterface, exists := context.Get("userInfo")
-	if !exists {
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Não foi possível recuperar as informações do usuário"})
-		return
-	}
-
-	userInfo, ok := userInfoInterface.(middlewares.UserBasicInfo)
-	if !ok {
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Não foi possível converter as informações do usuário"})
-		return
-	}
-
-	papper := models.Papper{
-		Name:        basicPapper.Name,
-		Description: basicPapper.Description,
-		UserID:      userInfo.ID,
-	}
-
-	ghClient := githubclient.NewGitHubClient()
-	repoName := utils.FormatRepositoryName(strconv.FormatInt(userInfo.ID, 10) + "_" + papper.Name)
-	// ghClient.DeleteRepo(repoName)
-
-	repo, err := ghClient.CreateRepo(repoName, papper.Description, true)
-	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao criar repositório. " + err.Error()})
-		return
-	}
-	fmt.Println("Repositório criado:", repo.GetHTMLURL())
-
-	readmePath := "README.md"
-	readmeContent := "# " + papper.Name + "\n\n" + papper.Description
-	err = ghClient.CreateOrUpdateFile(repoName, userInfo.Email, userInfo.Name, readmePath, "initial README.md file", readmeContent)
-	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao criar ou atualizar o arquivo. " + readmePath + err.Error()})
-		return
-	}
-	fmt.Printf("Arquivo criado ou atualizado com sucesso (%s)\n", readmePath)
-	err = papper.Save()
-	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save paper"})
-		return
-	}
-
-	context.JSON(http.StatusOK, gin.H{"message": "Paper created successfully"})
-}
+// func CreatePapper(context *gin.Context) {
+// 	var basicPapper basicPapperStructure
+// 	if err := context.ShouldBindJSON(&basicPapper); err != nil {
+// 		context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
+// 		return
+// 	}
+// 	userInfo, err := utils.GetUserInfo(context)
+// 	if err != nil {
+// 		context.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+// 		return
+// 	}
+// 	papper := models.Papper{
+// 		Name:        basicPapper.Name,
+// 		Description: basicPapper.Description,
+// 		UserID:      userInfo.ID,
+// 	}
+// 	ghClient := githubclient.NewGitHubClient()
+// 	repoName := utils.FormatRepositoryName(userInfo.ID + "_" + papper.Name)
+// 	// ghClient.DeleteRepo(repoName)
+// 	repo, err := ghClient.CreateRepo(repoName, papper.Description, true)
+// 	if err != nil {
+// 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao criar repositório. " + err.Error()})
+// 		return
+// 	}
+// 	fmt.Println("Repositório criado:", repo.GetHTMLURL())
+// 	readmePath := "README.md"
+// 	readmeContent := "# " + papper.Name + "\n\n" + papper.Description
+// 	err = ghClient.CreateOrUpdateFile(repoName, userInfo.Email, userInfo.Name, readmePath, "initial README.md file", readmeContent)
+// 	if err != nil {
+// 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao criar ou atualizar o arquivo. " + readmePath + err.Error()})
+// 		return
+// 	}
+// 	fmt.Printf("Arquivo criado ou atualizado com sucesso (%s)\n", readmePath)
+// 	err = papper.Save()
+// 	if err != nil {
+// 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save paper"})
+// 		return
+// 	}
+// 	context.JSON(http.StatusOK, gin.H{"message": "Paper created successfully"})
+// }
 
 func GetFileUpdateList(context *gin.Context) {
 	var file fileStr
 	err := context.ShouldBindJSON(&file)
 
-	userInfoInterface, exists := context.Get("userInfo")
-	if !exists {
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Não foi possível recuperar as informações do usuário"})
-		return
-	}
-
-	userInfo, ok := userInfoInterface.(middlewares.UserBasicInfo)
-
-	if !ok {
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Não foi possível converter as informações do usuário"})
-		return
-	}
-	repoName := utils.FormatRepositoryName(strconv.FormatInt(userInfo.ID, 10) + "_" + file.Papper)
-
+	userInfo, err := utils.GetUserInfo(context)
 	if err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
+		context.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	repoName := utils.FormatRepositoryName(userInfo.ID + "_" + file.Papper)
+
 	ghClient := githubclient.NewGitHubClient()
 	commits, err := ghClient.ListCommitsOfFile(repoName, file.Path)
 	if err != nil {
@@ -134,20 +91,14 @@ func GetCommitDiff(context *gin.Context) {
 	sha := context.Query("sha")
 	path := context.Query("path")
 	ghClient := githubclient.NewGitHubClient()
-	userInfoInterface, exists := context.Get("userInfo")
-	if !exists {
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Não foi possível recuperar as informações do usuário"})
+
+	userInfo, err := utils.GetUserInfo(context)
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	userInfo, ok := userInfoInterface.(middlewares.UserBasicInfo)
-
-	if !ok {
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Não foi possível converter as informações do usuário"})
-		return
-	}
-
-	repoName := utils.FormatRepositoryName(strconv.FormatInt(userInfo.ID, 10) + "_" + repo)
+	repoName := utils.FormatRepositoryName(userInfo.ID + "_" + repo)
 
 	commits, err := ghClient.GetCommitDiff(repoName, sha, path)
 	if err != nil {
@@ -155,31 +106,22 @@ func GetCommitDiff(context *gin.Context) {
 		return
 	}
 
-	context.Header("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
-	context.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s", commits.Filename))
-
-	context.Data(http.StatusOK, "application/vnd.openxmlformats-officedocument.wordprocessingml.document", commits.Docx)
-
 	context.JSON(http.StatusOK, commits)
 
 }
+
 func GetFile(context *gin.Context) {
 	repo := context.Query("repo")
 	sha := context.Query("sha")
 	path := context.Query("path")
 
-	userInfoInterface, exists := context.Get("userInfo")
-	if !exists {
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Não foi possível recuperar as informações do usuário"})
+	userInfo, err := utils.GetUserInfo(context)
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	userInfo, ok := userInfoInterface.(middlewares.UserBasicInfo)
-	if !ok {
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Não foi possível converter as informações do usuário"})
-		return
-	}
-	repoName := utils.FormatRepositoryName(strconv.FormatInt(userInfo.ID, 10) + "_" + repo)
+	repoName := utils.FormatRepositoryName(userInfo.ID + "_" + repo)
 
 	if repo == "" || sha == "" || path == "" {
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Missing required query parameters"})
@@ -208,22 +150,17 @@ func CreateFile(context *gin.Context) {
 		return
 	}
 	ghClient := githubclient.NewGitHubClient()
-	userInfoInterface, exists := context.Get("userInfo")
-	if !exists {
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Não foi possível recuperar as informações do usuário"})
+
+	userInfo, err := utils.GetUserInfo(context)
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	userInfo, ok := userInfoInterface.(middlewares.UserBasicInfo)
-	if !ok {
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Não foi possível converter as informações do usuário"})
-		return
-	}
-
-	repoName := utils.FormatRepositoryName(strconv.FormatInt(userInfo.ID, 10) + "_" + basicPapper.Papper)
+	repoName := utils.FormatRepositoryName(userInfo.ID + "_" + basicPapper.Papper)
 	Filename := utils.FormatRepositoryName(basicPapper.Path)
 
-	err := ghClient.CreateFile(repoName, userInfo.Email, userInfo.Name, Filename+"/"+Filename, "initial File", "initial doc")
+	err = ghClient.CreateFile(repoName, userInfo.Email, userInfo.Name, Filename+"/"+Filename, "initial File", "initial doc")
 
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "nao foi possivel criar arquivo. " + repoName + Filename})
@@ -239,22 +176,16 @@ func UpdateFile(context *gin.Context) {
 		return
 	}
 	ghClient := githubclient.NewGitHubClient()
-	userInfoInterface, exists := context.Get("userInfo")
-	if !exists {
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Não foi possível recuperar as informações do usuário"})
+	userInfo, err := utils.GetUserInfo(context)
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	userInfo, ok := userInfoInterface.(middlewares.UserBasicInfo)
-	if !ok {
-		context.JSON(http.StatusInternalServerError, gin.H{"error": "Não foi possível converter as informações do usuário"})
-		return
-	}
-
-	repoName := utils.FormatRepositoryName(strconv.FormatInt(userInfo.ID, 10) + "_" + basicPapper.Papper)
+	repoName := utils.FormatRepositoryName(userInfo.ID + "_" + basicPapper.Papper)
 	Filename := utils.FormatRepositoryName(basicPapper.Path)
 
-	err := ghClient.UpdateFile(repoName, userInfo.Email, userInfo.Name, Filename+"/"+Filename, "initial File", "initial doc")
+	err = ghClient.UpdateFile(repoName, userInfo.Email, userInfo.Name, Filename+"/"+Filename, "initial File", "initial doc")
 
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "nao foi possivel atualizar arquivo. " + repoName + Filename})
@@ -266,4 +197,133 @@ func UpdateFile(context *gin.Context) {
 type fileStr struct {
 	Papper string `json:"papper"`
 	Path   string `json:"path"`
+}
+
+func CreateRootPapper(C *gin.Context) {
+	userInfo, err := utils.GetUserInfo(C)
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting user info. " + err.Error()})
+		return
+	}
+	var rp models.RootPapper
+	C.ShouldBindJSON(&rp)
+
+	if rp.Name == "" {
+		rp.Name = "PapperTrail"
+		return
+	}
+
+	client, err := userInfo.GetClient(googleOauthConfig)
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error file listo. " + err.Error()})
+	}
+
+	driveSrv, err := drive.NewService(context.Background(), option.WithHTTPClient(client))
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error file listo. " + err.Error()})
+	}
+	folder, err := googleClient.CreateFolder(driveSrv, rp.Name, "")
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating root folder.  " + err.Error()})
+	}
+
+	rp.Id = folder.Id
+	rp.UserID = userInfo.ID
+
+	rp.Save()
+
+	C.JSON(http.StatusOK, gin.H{"message": rp.Name + " folder created successfully."})
+}
+
+func CreatePapper(C *gin.Context) {
+	var papper models.Papper
+	C.ShouldBindJSON(&papper)
+
+	rootPapperInfo, err := utils.GetRootPapperInfo(C)
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting root folder info. " + err.Error()})
+		return
+	}
+	userInfo, err := utils.GetUserInfo(C)
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting user info. " + err.Error()})
+		return
+	}
+
+	client, err := userInfo.GetClient(googleOauthConfig)
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error geting google client info. " + err.Error()})
+	}
+
+	driveSrv, err := drive.NewService(context.Background(), option.WithHTTPClient(client))
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error geting google driver. " + err.Error()})
+	}
+	folder, err := googleClient.CreateFolder(driveSrv, papper.Name, rootPapperInfo.Id)
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating folder. " + err.Error()})
+	}
+	papper.Root_papper_id = rootPapperInfo.Id
+	papper.Path = rootPapperInfo.Name + "/" + papper.Name
+	papper.ID = folder.Id
+	papper.Save()
+	fileId, err := googleClient.CreateDocxFile(driveSrv, "Chapter 1", folder.Id, "<h1>Chapter 1</h1>")
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating first chapter. " + err.Error()})
+	}
+	C.JSON(http.StatusOK, fileId)
+
+}
+
+func GetFileList(C *gin.Context) {
+	userInfo, err := utils.GetUserInfo(C)
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting user info. " + err.Error()})
+		return
+	}
+
+	client, err := userInfo.GetClient(googleOauthConfig)
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error file listo. " + err.Error()})
+	}
+
+	driveSrv, err := drive.NewService(context.Background(), option.WithHTTPClient(client))
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error file listo. " + err.Error()})
+	}
+
+	fileList, err := googleClient.ListFiles(driveSrv)
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error file listo. " + err.Error()})
+		return
+	}
+	C.JSON(http.StatusOK, fileList)
+
+}
+
+func GetDocxIdByProject(C *gin.Context) {
+
+	userInfo, err := utils.GetUserInfo(C)
+
+	baseFolder := C.Query("baseFolder")
+	// projectName := C.Query("project")
+
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting user info. " + err.Error()})
+		return
+	}
+
+	client, err := userInfo.GetClient(googleOauthConfig)
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error file listo. " + err.Error()})
+	}
+
+	driveSrv, err := drive.NewService(context.Background(), option.WithHTTPClient(client))
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error file listo. " + err.Error()})
+	}
+
+	fileList, err := googleClient.GetDocxFileIDs(driveSrv, baseFolder)
+	C.JSON(http.StatusOK, fileList)
+
 }

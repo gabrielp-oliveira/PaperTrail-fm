@@ -212,8 +212,9 @@ func (gh *GitHubClient) GetCommitDiff(repo string, sha string, path string) (*ut
 				return nil, fmt.Errorf(" %v", err)
 			}
 			file.Diff = diff
+			encodedDocx := base64.StdEncoding.EncodeToString(docx)
 
-			file.Docx = docx
+			file.Docx = encodedDocx
 
 		} else {
 			if f.Patch != nil {
