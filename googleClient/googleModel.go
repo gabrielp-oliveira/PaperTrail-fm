@@ -3,6 +3,9 @@ package googleClient
 import (
 	"bytes"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 
 	"google.golang.org/api/drive/v3"
 )
@@ -16,34 +19,34 @@ func ListFiles(service *drive.Service) ([]*drive.File, error) {
 	return files.Files, nil
 }
 
+// CreateFolder cria uma pasta no Google Drive e retorna a pasta criada.
 func CreateFolder(service *drive.Service, name, parentID string) (*drive.File, error) {
 	// Verificar se a pasta já existe
 	query := fmt.Sprintf("name='%s' and mimeType='application/vnd.google-apps.folder' and trashed=false", name)
-	existingFolders, err := service.Files.List().Q(query).Do()
+	if parentID != "" {
+		query += fmt.Sprintf(" and '%s' in parents", parentID)
+	}
+	r, err := service.Files.List().Q(query).Do()
 	if err != nil {
-		return nil, fmt.Errorf("unable to check existing folders: %v", err)
+		return nil, fmt.Errorf("unable to check if folder exists: %v", err)
+	}
+	if len(r.Files) > 0 {
+		return nil, fmt.Errorf("folder '%s' already exists, please choose another name", name)
 	}
 
-	if len(existingFolders.Files) > 0 {
-		return nil, fmt.Errorf("folder '%s' already exists, please chose another name.", name)
-	}
-
-	// Criar a nova pasta
+	// Criar a pasta
 	folder := &drive.File{
 		Name:     name,
 		MimeType: "application/vnd.google-apps.folder",
 	}
-
 	if parentID != "" {
 		folder.Parents = []string{parentID}
 	}
-
-	createdFolder, err := service.Files.Create(folder).Do()
+	folder, err = service.Files.Create(folder).Do()
 	if err != nil {
 		return nil, fmt.Errorf("unable to create folder: %v", err)
 	}
-
-	return createdFolder, nil
+	return folder, nil
 }
 
 func GetDocxFileIDs(service *drive.Service, projectFolderID string) ([]string, error) {
@@ -99,4 +102,85 @@ func CreateDocxFile(service *drive.Service, name, parentID, content string) (str
 	}
 
 	return createdFile.Id, nil
+}
+
+func UploadFile(service *drive.Service, name, parentID, filePath string) (string, error) {
+	fileMetadata := &drive.File{
+		Name:     name,
+		MimeType: "application/octet-stream",
+	}
+
+	if parentID != "" {
+		fileMetadata.Parents = []string{parentID}
+	}
+
+	file, err := os.Open(filePath)
+	if err != nil {
+		return "", fmt.Errorf("unable to open file: %v", err)
+	}
+	defer file.Close()
+
+	_, err = ioutil.ReadAll(file)
+	if err != nil {
+		return "", fmt.Errorf("unable to read file content: %v", err)
+	}
+
+	createdFile, err := service.Files.Create(fileMetadata).Media(file).Do()
+	if err != nil {
+		return "", fmt.Errorf("unable to create file: %v", err)
+	}
+
+	return createdFile.Id, nil
+}
+
+func UploadLocalFile(service *drive.Service, filePath, parentID string) error {
+	fileName := filepath.Base(filePath)
+	file, err := os.Open(filePath)
+	if err != nil {
+		return fmt.Errorf("unable to open file: %v", err)
+	}
+
+	defer file.Close()
+
+	fileMetadata := &drive.File{
+		Name:    fileName,
+		Parents: []string{parentID},
+	}
+
+	_, err = service.Files.Create(fileMetadata).Media(file).Do()
+	if err != nil {
+		return fmt.Errorf("unable to create file: %v", err)
+	}
+
+	return nil
+}
+
+func CreateReadmeFile(service *drive.Service, parentID, content string) (*drive.File, error) {
+	fileMetadata := &drive.File{
+		Name:     "README.md",
+		MimeType: "text/markdown",
+	}
+
+	if parentID != "" {
+		fileMetadata.Parents = []string{parentID}
+	}
+
+	readmeFile, err := ioutil.TempFile("", "README.md")
+	if err != nil {
+		return nil, fmt.Errorf("unable to create temporary file: %v", err)
+	}
+	defer os.Remove(readmeFile.Name())
+
+	_, err = readmeFile.Write([]byte(content))
+	if err != nil {
+		return nil, fmt.Errorf("unable to write to temporary file: %v", err)
+	}
+
+	readmeFile.Seek(0, 0)
+	createdFile, err := service.Files.Create(fileMetadata).Media(readmeFile).Do()
+	if err != nil {
+		return nil, fmt.Errorf("unable to create README.md file: %v", err)
+	}
+
+	return createdFile, nil
 }

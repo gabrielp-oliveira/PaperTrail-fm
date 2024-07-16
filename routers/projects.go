@@ -3,8 +3,13 @@ package routes
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
+	"os"
+	"path/filepath"
+	"time"
 
+	"PaperTrail-fm.com/gitConfig"
 	"PaperTrail-fm.com/githubclient"
 	"PaperTrail-fm.com/googleClient"
 	"PaperTrail-fm.com/models"
@@ -13,12 +18,9 @@ import (
 	"google.golang.org/api/option"
 
 	"github.com/gin-gonic/gin"
+	git "github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing/object"
 )
-
-type basicPapperStructure struct {
-	Description string `json:"description" binding:"required"`
-	Name        string `json:"name" binding:"required"`
-}
 
 var googleOauthConfig = googleClient.StartCredentials()
 
@@ -222,12 +224,12 @@ func CreateRootPapper(C *gin.Context) {
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error file listo. " + err.Error()})
 	}
-	folder, err := googleClient.CreateFolder(driveSrv, rp.Name, "")
+	folderId, err := googleClient.CreateFolder(driveSrv, rp.Name, "")
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating root folder.  " + err.Error()})
 	}
 
-	rp.Id = folder.Id
+	rp.Id = folderId.Id
 	rp.UserID = userInfo.ID
 
 	rp.Save()
@@ -253,25 +255,124 @@ func CreatePapper(C *gin.Context) {
 	client, err := userInfo.GetClient(googleOauthConfig)
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error geting google client info. " + err.Error()})
+		return
 	}
 
 	driveSrv, err := drive.NewService(context.Background(), option.WithHTTPClient(client))
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error geting google driver. " + err.Error()})
+		return
 	}
 	folder, err := googleClient.CreateFolder(driveSrv, papper.Name, rootPapperInfo.Id)
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating folder. " + err.Error()})
+		return
 	}
 	papper.Root_papper_id = rootPapperInfo.Id
 	papper.Path = rootPapperInfo.Name + "/" + papper.Name
 	papper.ID = folder.Id
 	papper.Save()
-	fileId, err := googleClient.CreateDocxFile(driveSrv, "Chapter 1", folder.Id, "<h1>Chapter 1</h1>")
+	_, err = googleClient.CreateReadmeFile(driveSrv, papper.ID, "# read me content for this papper.")
 	if err != nil {
-		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating first chapter. " + err.Error()})
+		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating read me. " + err.Error()})
+		return
 	}
-	C.JSON(http.StatusOK, fileId)
+	// chapterId, err := googleClient.CreateFolder(driveSrv, "chapter1", papper.ID)
+	// if err != nil {
+	// 	C.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating chapter folder. " + err.Error()})
+	// 	return
+	// }
+
+	repoPath := "tempRepositories/" + papper.ID + "/" + "chapter1"
+	err = os.MkdirAll(repoPath, os.ModePerm)
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error " + err.Error()})
+		return
+	}
+
+	docxFilePath := filepath.Join(repoPath, "chapter_1.docx")
+	docxContent := "This is the content of Chapter 1."
+	err = gitConfig.CreateDocxFile(docxFilePath, docxContent)
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error " + err.Error()})
+		return
+	}
+	repo, err := git.PlainInit(repoPath, false)
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error " + err.Error()})
+		return
+	}
+
+	worktree, err := repo.Worktree()
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error " + err.Error()})
+		return
+	}
+
+	_, err = worktree.Add("chapter_1.docx")
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error " + err.Error()})
+		return
+	}
+
+	commit, err := worktree.Commit("Initial commit", &git.CommitOptions{
+		Author: &object.Signature{
+			Name:  userInfo.Name,
+			Email: userInfo.Email,
+			When:  time.Now(),
+		},
+	})
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error " + err.Error()})
+		return
+	}
+
+	_, err = repo.CommitObject(commit)
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error " + err.Error()})
+		return
+	}
+
+	err = gitConfig.UploadDirectoryToDrive(driveSrv, repoPath, papper.ID)
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error " + err.Error()})
+		return
+	}
+	log.Println("Repository successfully uploaded to Google Drive")
+
+	// fileId, err := googleClient.CreateDocxFile(driveSrv, "Chapter 1", chapterId, "<h1>Chapter 1/h1>")
+	// if err != nil {
+	// 	C.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating chapter docs. " + err.Error()})
+	// 	return
+	// }
+	// repoPath, err := gitConfig.CreateLocalRepo(papper.Path + "/Chapter1", "Chapter1")
+	// if err != nil {
+	// 	C.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating chapter docs. " + err.Error()})
+	// 	gitConfig.RemoveLocalRepo(repoPath)
+	// 	return
+	// }
+	// defer func() {
+	// 	if err != nil {
+	// 		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating chapter docs. " + err.Error()})
+	// 		gitConfig.RemoveLocalRepo(repoPath)
+	// 		return
+	// 	}
+	// }()
+
+	// err = gitConfig.UploadRepo(driveSrv, repoPath, folderId)
+	// if err != nil {
+	// 	gitConfig.RemoveLocalRepo(repoPath)
+	// 	log.Fatalf("Unable to upload repo: %v", err)
+	// 	return
+	// }
+
+	// _, err = gitConfig.UploadFile(driveSrv, "Chapter1", chapterId, papper.Path+"/chapter1")
+	// if err != nil {
+	// 	C.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating first chapter. " + err.Error()})
+	// 	return
+	// }
+	gitConfig.RemoveLocalRepo("repoPath")
+	C.JSON(http.StatusOK, "fileId")
 
 }
 
