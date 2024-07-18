@@ -2,7 +2,6 @@ package gitConfig
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -69,20 +68,16 @@ func RemoveLocalRepo(repoPath string) error {
 	return nil
 }
 
-// UploadDirectoryToDrive faz upload recursivo de um diretório local para o Google Drive
-func UploadDirectoryToDrive(service *drive.Service, localPath, parentFolderID string) error {
-	// Obter informações sobre o diretório local
+func UploadDirectoryToDrive(service *drive.Service, localPath, parentFolderID, docId string) (string, error) {
 	fileInfo, err := os.Stat(localPath)
 	if err != nil {
-		return fmt.Errorf("unable to read directory info: %v", err)
+		return "", fmt.Errorf("unable to read directory info: %v", err)
 	}
 
-	// Verificar se é um diretório válido
 	if !fileInfo.IsDir() {
-		return fmt.Errorf("%s is not a valid directory", localPath)
+		return "", fmt.Errorf("%s is not a valid directory", localPath)
 	}
 
-	// Criar uma pasta no Google Drive com o nome do diretório local
 	folder := &drive.File{
 		Name:     fileInfo.Name(),
 		MimeType: "application/vnd.google-apps.folder",
@@ -90,30 +85,26 @@ func UploadDirectoryToDrive(service *drive.Service, localPath, parentFolderID st
 	}
 	createdFolder, err := service.Files.Create(folder).Do()
 	if err != nil {
-		return fmt.Errorf("unable to create folder in Google Drive: %v", err)
+		return "", fmt.Errorf("unable to create folder in Google Drive: %v", err)
 	}
 	folderID := createdFolder.Id
 
-	// Listar arquivos no diretório local
-	files, err := ioutil.ReadDir(localPath)
+	files, err := os.ReadDir(localPath)
 	if err != nil {
-		return fmt.Errorf("unable to read directory: %v", err)
+		return "", fmt.Errorf("unable to read directory: %v", err)
 	}
 
-	// Iterar sobre os arquivos e subdiretórios
 	for _, file := range files {
 		filePath := filepath.Join(localPath, file.Name())
 
 		if file.IsDir() {
-			// Recursivamente fazer upload de subdiretórios
-			err := UploadDirectoryToDrive(service, filePath, folderID)
+			dcId, err := UploadDirectoryToDrive(service, filePath, folderID, docId)
 			if err != nil {
 				log.Printf("unable to upload directory '%s': %v", filePath, err)
-				// Continuar com o próximo arquivo ou diretório
 				continue
 			}
+			docId = dcId
 		} else {
-			// Fazer upload de arquivos individuais
 			fileMetadata := &drive.File{
 				Name:    file.Name(),
 				Parents: []string{folderID},
@@ -121,21 +112,23 @@ func UploadDirectoryToDrive(service *drive.Service, localPath, parentFolderID st
 			fileContent, err := os.Open(filePath)
 			if err != nil {
 				log.Printf("unable to open file '%s': %v", filePath, err)
-				// Continuar com o próximo arquivo ou diretório
 				continue
 			}
 
-			_, err = service.Files.Create(fileMetadata).Media(fileContent).Do()
+			doc, err := service.Files.Create(fileMetadata).Media(fileContent).Do()
+			if filepath.Ext(file.Name()) == ".docx" {
+				fileMetadata.MimeType = "application/vnd.google-apps.document"
+				docId = doc.Id
+			}
 			fileContent.Close()
 			if err != nil {
 				log.Printf("unable to upload file '%s': %v", filePath, err)
-				// Continuar com o próximo arquivo ou diretório
 				continue
 			}
 		}
 	}
 
-	return nil
+	return docId, nil
 }
 func CreateDocxFile(filePath string, content string) error {
 	doc := document.New()

@@ -26,11 +26,11 @@ func Authenticate(context *gin.Context) {
 		context.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "Not authorized."})
 		return
 	}
-	query := "SELECT name, email, id, name, accessToken, refresh_token, token_expiry FROM users WHERE email = $1"
+	query := "SELECT name, email,base_folder, id, name, accessToken, refresh_token, token_expiry FROM users WHERE email = $1"
 	row := db.DB.QueryRow(query, userEmail)
 
 	var userInfo models.User
-	err = row.Scan(&userInfo.Name, &userInfo.Email, &userInfo.ID, &userInfo.Name, &userInfo.AccessToken, &userInfo.RefreshToken, &userInfo.TokenExpiry)
+	err = row.Scan(&userInfo.Name, &userInfo.Email, &userInfo.Base_folder, &userInfo.ID, &userInfo.Name, &userInfo.AccessToken, &userInfo.RefreshToken, &userInfo.TokenExpiry)
 
 	if err != nil {
 		if err == sql.ErrNoRows {

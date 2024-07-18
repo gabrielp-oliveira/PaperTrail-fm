@@ -8,6 +8,8 @@ import (
 	"github.com/joho/godotenv"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
+	"google.golang.org/api/drive/v3"
+	"google.golang.org/api/option"
 )
 
 var OauthStateString = "randomstatestring"
@@ -45,4 +47,31 @@ func GetGoogleToken(config *oauth2.Config, code string) (*oauth2.Token, error) {
 
 func GetGoogleRedirectUrl() string {
 	return StartCredentials().AuthCodeURL(OauthStateString, oauth2.AccessTypeOffline, oauth2.ApprovalForce, oauth2.SetAuthURLParam("prompt", "consent"))
+}
+func GetAppDriveService() *drive.Service {
+	serviceAccountFile := "config/google_client_secret.json"
+
+	// Ler o arquivo JSON da chave da conta de serviço
+	b, err := os.ReadFile(serviceAccountFile)
+	if err != nil {
+		log.Fatalf("Unable to read service account file: %v", err)
+	}
+
+	// Autenticar usando a conta de serviço
+	config, err := google.JWTConfigFromJSON(b, drive.DriveFileScope)
+	if err != nil {
+		log.Fatalf("Unable to parse service account file to config: %v", err)
+	}
+
+	// Criar cliente HTTP
+	client := config.Client(context.Background())
+
+	// Criar serviço do Google Drive
+	service, err := drive.NewService(context.Background(), option.WithHTTPClient(client))
+	if err != nil {
+		log.Fatalf("Unable to create drive service: %v", err)
+	}
+
+	return service
+
 }

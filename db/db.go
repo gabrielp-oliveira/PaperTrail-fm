@@ -46,7 +46,9 @@ CREATE TABLE IF NOT EXISTS users (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	    accessToken TEXT,
     refresh_token TEXT,
-    token_expiry TIMESTAMP
+    token_expiry TIMESTAMP,
+	    base_folder TEXT
+
 );
 `
 

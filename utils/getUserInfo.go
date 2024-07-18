@@ -21,3 +21,17 @@ func GetUserInfo(context *gin.Context) (models.User, error) {
 
 	return userInfo, nil
 }
+func GetPapperInfo(context *gin.Context) (models.Papper, error) {
+
+	papperInterface, exists := context.Get("PapperInfo")
+	if !exists {
+		return models.Papper{}, errors.New("Unable to retrieve user information")
+	}
+
+	papperInfo, ok := papperInterface.(models.Papper)
+	if !ok {
+		return models.Papper{}, errors.New("Unable to retrieve user information")
+	}
+
+	return papperInfo, nil
+}

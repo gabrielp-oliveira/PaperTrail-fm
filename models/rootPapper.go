@@ -19,8 +19,9 @@ func (rp *RootPapper) Save() error {
 	var rpId string
 
 	// Verifica se o papper já existe no banco de dados
-	query := `SELECT name, created_at FROM rootpappers WHERE id = $1`
-	err := db.DB.QueryRow(query, rp.Id).Scan(&rpId)
+	// query := `SELECT name, created_at FROM rootpappers WHERE id = $1`
+	query := `SELECT name, created_at FROM rootpappers WHERE user_id = $1`
+	err := db.DB.QueryRow(query, rp.UserID).Scan(&rpId)
 
 	if err != nil && err != sql.ErrNoRows {
 		// Se ocorrer um erro diferente de "sem linhas encontradas", retorna o erro

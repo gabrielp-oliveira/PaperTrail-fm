@@ -19,6 +19,7 @@ type User struct {
 	AccessToken  string    `json:"accessToken"`
 	RefreshToken string    `json:"refresh_token"`
 	TokenExpiry  time.Time `json:"token_expiry"`
+	Base_folder  string    `json:"base_folder"`
 }
 
 func (u User) GetClient(config *oauth2.Config) (*http.Client, error) {
@@ -57,6 +58,14 @@ func (u User) UpdateToken() error {
 	_, err := db.DB.Exec(updateQuery, u.AccessToken, u.RefreshToken, u.TokenExpiry, u.Email)
 	if err != nil {
 		return errors.New("Error updating token. " + err.Error())
+	}
+	return nil
+}
+func (u User) UpdateBaseFolder() error {
+	updateQuery := "UPDATE users SET base_folder = $1 WHERE email = $2"
+	_, err := db.DB.Exec(updateQuery, u.Base_folder, u.Email)
+	if err != nil {
+		return errors.New("Error updating base folder. " + err.Error())
 	}
 	return nil
 }
