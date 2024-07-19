@@ -23,15 +23,18 @@ func GetUserInfo(context *gin.Context) (models.User, error) {
 }
 func GetPapperInfo(context *gin.Context) (models.Papper, error) {
 
-	papperInterface, exists := context.Get("PapperInfo")
+	papperData, exists := context.Get("papper")
 	if !exists {
-		return models.Papper{}, errors.New("Unable to retrieve user information")
+		return models.Papper{}, errors.New("Unable to retrieve papper information")
+
 	}
 
-	papperInfo, ok := papperInterface.(models.Papper)
+	// Fazer o cast para o tipo correto
+	papper, ok := papperData.(models.Papper)
 	if !ok {
-		return models.Papper{}, errors.New("Unable to retrieve user information")
-	}
+		return models.Papper{}, errors.New("Unable to retrieve Papper information")
 
-	return papperInfo, nil
+	}
+	return papper, nil
+
 }

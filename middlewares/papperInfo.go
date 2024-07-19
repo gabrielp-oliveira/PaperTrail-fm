@@ -13,15 +13,17 @@ import (
 
 func RootPapperInfo(C *gin.Context) {
 	userInfo, err := utils.GetUserInfo(C)
-
+	var papper models.Papper
+	C.ShouldBindJSON(&papper)
+	C.Set("papper", papper)
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting user info. " + err.Error()})
 		return
 	}
 
-	query := "SELECT name, id FROM rootpappers WHERE user_id = $1"
+	query := "SELECT name, id FROM rootpappers WHERE user_id = $1 and id = $2"
 	var rootPapper models.RootPapper
-	row := db.DB.QueryRow(query, userInfo.ID)
+	row := db.DB.QueryRow(query, userInfo.ID, papper.Root_papper_id)
 	err = row.Scan(&rootPapper.Name, &rootPapper.Id)
 	if err != nil {
 		if err == sql.ErrNoRows {

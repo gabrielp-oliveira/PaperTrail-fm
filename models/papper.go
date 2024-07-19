@@ -9,12 +9,12 @@ import (
 )
 
 type Papper struct {
-	ID             string
-	Name           string    `binding:"required"`
-	Description    string    `binding:"required"`
-	Path           string    `binding:"required"`
-	Created_at     time.Time `binding:"required"`
-	Root_papper_id string    `binding:"required"`
+	ID             string    `json:"id"`
+	Name           string    `json:"name"`
+	Description    string    `json:"description"`
+	Path           string    `json:"path"`
+	Created_at     time.Time `json:"created_at"`
+	Root_papper_id string    `json:"root_papper_id"`
 }
 
 func (e *Papper) Save() error {

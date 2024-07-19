@@ -181,14 +181,18 @@ func CreateRootPapper(C *gin.Context) {
 }
 
 func CreatePapper(C *gin.Context) {
-	var papper models.Papper
-	C.ShouldBindJSON(&papper)
-
 	rootPapperInfo, err := utils.GetRootPapperInfo(C)
 	if err != nil {
-		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting root folder info. " + err.Error()})
+		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+	papper, err := utils.GetPapperInfo(C)
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// erro ao obter informacors para montar o papper /\
 	userInfo, err := utils.GetUserInfo(C)
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting user info. " + err.Error()})
@@ -385,5 +389,35 @@ func CreateChapter(C *gin.Context) {
 
 }
 func CompareLastCommitWithDocs(C *gin.Context) {
+
+}
+
+func GetRootPapperList(C *gin.Context) {
+	userInfo, err := utils.GetUserInfo(C)
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting user info. " + err.Error()})
+		return
+	}
+	list, err := userInfo.GetRootPappers()
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting user root papper. " + err.Error()})
+		return
+	}
+	C.JSON(http.StatusOK, list)
+
+}
+
+func getPapperList(C *gin.Context) {
+	rootPapper, err := utils.GetRootPapperInfo(C)
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	list, err := rootPapper.GetPapperList()
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting papper. " + err.Error()})
+		return
+	}
+	C.JSON(http.StatusOK, list)
 
 }

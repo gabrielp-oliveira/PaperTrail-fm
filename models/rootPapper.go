@@ -45,3 +45,25 @@ func (rp *RootPapper) Save() error {
 
 	return nil
 }
+
+func (rp *RootPapper) GetPapperList() ([]Papper, error) {
+	query := "SELECT id, name, description, created_at FROM pappers WHERE root_papper_id = $1"
+	rows, err := db.DB.Query(query, rp.Id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var list []Papper
+	for rows.Next() {
+		var papper Papper
+		if err := rows.Scan(&papper.ID, &papper.Name, &papper.Description, &papper.Created_at); err != nil {
+			return nil, err
+		}
+		list = append(list, papper)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return list, nil
+}

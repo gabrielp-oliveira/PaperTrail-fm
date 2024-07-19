@@ -81,3 +81,25 @@ func (u User) SetToken() error {
 	}
 	return nil
 }
+
+func (u User) GetRootPappers() ([]RootPapper, error) {
+	query := "SELECT id, name FROM rootpappers WHERE user_id = $1"
+	rows, err := db.DB.Query(query, u.ID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var list []RootPapper
+	for rows.Next() {
+		var rp RootPapper
+		if err := rows.Scan(&rp.Id, &rp.Name); err != nil {
+			return nil, err
+		}
+		list = append(list, rp)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return list, nil
+}

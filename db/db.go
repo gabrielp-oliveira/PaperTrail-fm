@@ -37,20 +37,6 @@ func InitDB() {
 }
 
 func createTables(db *sql.DB) {
-	createUsersTable := `
-CREATE TABLE IF NOT EXISTS users (
-    id TEXT PRIMARY KEY,
-	name TEXT NOT NULL,
-    email TEXT NOT NULL UNIQUE,
-    password TEXT NOT NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	    accessToken TEXT,
-    refresh_token TEXT,
-    token_expiry TIMESTAMP,
-	    base_folder TEXT
-
-);
-`
 
 	createRootProjectTable := `
 CREATE TABLE IF NOT EXISTS rootpappers (
@@ -73,11 +59,7 @@ CREATE TABLE IF NOT EXISTS pappers (
 );
 `
 
-	_, err := db.Exec(createUsersTable)
-	if err != nil {
-		log.Fatalf("Could not create users table: %v", err)
-	}
-	_, err = db.Exec(createRootProjectTable)
+	_, err := db.Exec(createRootProjectTable)
 	if err != nil {
 		log.Fatalf("Could not create Rootpappers table: %v", err)
 	}
