@@ -59,6 +59,17 @@ CREATE TABLE IF NOT EXISTS pappers (
 );
 `
 
+	CreateChapterTable := `
+CREATE TABLE IF NOT EXISTS chapters (
+	id TEXT PRIMARY KEY,
+	name TEXT NOT NULL,
+	description TEXT NOT NULL,
+	created_at TIMESTAMP NOT NULL,
+	Papper_id TEXT,
+	FOREIGN KEY(Papper_id) REFERENCES pappers(id)
+);
+`
+
 	_, err := db.Exec(createRootProjectTable)
 	if err != nil {
 		log.Fatalf("Could not create Rootpappers table: %v", err)
@@ -67,6 +78,10 @@ CREATE TABLE IF NOT EXISTS pappers (
 	_, err = db.Exec(createPappersTable)
 	if err != nil {
 		log.Fatalf("Could not create pappers table: %v", err)
+	}
+	_, err = db.Exec(CreateChapterTable)
+	if err != nil {
+		log.Fatalf("Could not create chapter table: %v", err)
 	}
 
 }

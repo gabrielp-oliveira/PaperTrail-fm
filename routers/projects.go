@@ -192,7 +192,6 @@ func CreatePapper(C *gin.Context) {
 		return
 	}
 
-	// erro ao obter informacors para montar o papper /\
 	userInfo, err := utils.GetUserInfo(C)
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting user info. " + err.Error()})
@@ -299,9 +298,11 @@ func CreatePapper(C *gin.Context) {
 }
 func CreateChapter(C *gin.Context) {
 
-	var chapter models.Chapter
-	C.ShouldBindJSON(&chapter)
-
+	chapter, err := utils.GetChapterInfo(C)
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
 	papper, err := utils.GetPapperInfo(C)
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting root folder info. " + err.Error()})
@@ -326,9 +327,15 @@ func CreateChapter(C *gin.Context) {
 	}
 
 	repoPath := "tempRepositories/" + papper.ID + "/" + chapter.Name
+	err = os.MkdirAll(repoPath, os.ModePerm)
+	if err != nil {
+		gitConfig.RemoveLocalRepo(repoPath)
+		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error " + err.Error()})
+		return
+	}
 
 	docxFilePath := filepath.Join(repoPath, chapter.Name+".docx")
-	docxContent := "This is the content of " + chapter.Name + "."
+	docxContent := "This is the content of " + chapter.Name
 	err = gitConfig.CreateDocxFile(docxFilePath, docxContent)
 	if err != nil {
 		gitConfig.RemoveLocalRepo(repoPath)
@@ -382,13 +389,20 @@ func CreateChapter(C *gin.Context) {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error " + err.Error()})
 		return
 	}
+	chapter.Id = docId
+	err = chapter.Save()
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error " + err.Error()})
+		return
+	}
 	gitConfig.RemoveLocalRepo(repoPath)
 	log.Println("Repository successfully uploaded to Google Drive")
-
-	C.JSON(http.StatusOK, docId)
-
-}
-func CompareLastCommitWithDocs(C *gin.Context) {
+	file, err := driveSrv.Files.Get(docId).Fields("webViewLink").Do()
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error " + err.Error()})
+		return
+	}
+	C.JSON(http.StatusOK, file)
 
 }
 

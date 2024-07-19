@@ -84,7 +84,7 @@ func GetPapperByID(id int64) (*Papper, error) {
 	return &papper, nil
 }
 
-func (papper Papper) Update() error {
+func (papper *Papper) Update() error {
 	query := `
 	UPDATE pappers
 	SET name = ?, description = ?, path = ?, created_at = ?
@@ -102,7 +102,7 @@ func (papper Papper) Update() error {
 	return err
 }
 
-func (papper Papper) Delete() error {
+func (papper *Papper) Delete() error {
 	query := "DELETE FROM pappers WHERE id = ?"
 	stmt, err := db.DB.Prepare(query)
 
@@ -114,4 +114,26 @@ func (papper Papper) Delete() error {
 
 	_, err = stmt.Exec(papper.ID)
 	return err
+}
+
+func (papper *Papper) GetChapterList() ([]Chapter, error) {
+	query := "SELECT id, name, description, created_at, Papper_id FROM chapters WHERE papper_id = $1"
+	rows, err := db.DB.Query(query, papper.ID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var list []Chapter
+	for rows.Next() {
+		var chapter Chapter
+		if err := rows.Scan(&chapter.Id, &chapter.Name, &chapter.Description, &chapter.Created_at); err != nil {
+			return nil, err
+		}
+		list = append(list, chapter)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return list, nil
 }

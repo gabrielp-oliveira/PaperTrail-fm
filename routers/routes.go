@@ -14,12 +14,14 @@ func RegisterRoutes(server *gin.Engine) {
 	authenticated.POST("/createRootPapper", CreateRootPapper)
 	authenticated.GET("/getRootPapperList", GetRootPapperList)
 
-	authenticatedRootPapper := authenticated.Use(middlewares.RootPapperInfo)
+	authenticatedRootPapper := authenticated.Group("/").Use(middlewares.RootPapperInfo)
 	authenticatedRootPapper.POST("/createPapper", CreatePapper)
 	authenticatedRootPapper.GET("/getPapperList", getPapperList)
 
-	authenticatedRPapper := authenticated.Use(middlewares.PapperInfo)
-	authenticatedRPapper.POST("/createChapter", CreateChapter)
+	authenticatedPapper := authenticated.Group("/").Use(middlewares.PapperInfo)
+	authenticatedPapper.POST("/createChapter", CreateChapter)
+
+	// authenticatedRPapper := authenticated.Use(middlewares.PapperInfo)
 
 	// authenticated.POST("/GetFileUpdateList", GetFileUpdateList)
 	// authenticated.GET("/GetCommitDiff", GetCommitDiff)

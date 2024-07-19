@@ -109,6 +109,14 @@ func UploadDirectoryToDrive(service *drive.Service, localPath, parentFolderID, d
 				Name:    file.Name(),
 				Parents: []string{folderID},
 			}
+
+			// Determine the mime type based on file extension
+			mimeType := "application/octet-stream"
+			if filepath.Ext(filePath) == ".docx" {
+				mimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+			}
+			fileMetadata.MimeType = mimeType
+
 			fileContent, err := os.Open(filePath)
 			if err != nil {
 				log.Printf("unable to open file '%s': %v", filePath, err)
@@ -116,14 +124,23 @@ func UploadDirectoryToDrive(service *drive.Service, localPath, parentFolderID, d
 			}
 
 			doc, err := service.Files.Create(fileMetadata).Media(fileContent).Do()
-			if filepath.Ext(file.Name()) == ".docx" {
-				fileMetadata.MimeType = "application/vnd.google-apps.document"
-				docId = doc.Id
-			}
 			fileContent.Close()
 			if err != nil {
 				log.Printf("unable to upload file '%s': %v", filePath, err)
 				continue
+			}
+
+			// If the file is a .docx, convert it to Google Docs format
+			if filepath.Ext(file.Name()) == ".docx" {
+				convertFileMetadata := &drive.File{
+					MimeType: "application/vnd.google-apps.document",
+				}
+				_, err = service.Files.Update(doc.Id, convertFileMetadata).Do()
+				if err != nil {
+					log.Printf("unable to convert file '%s' to Google Docs format: %v", filePath, err)
+					continue
+				}
+				docId = doc.Id
 			}
 		}
 	}
@@ -133,10 +150,10 @@ func UploadDirectoryToDrive(service *drive.Service, localPath, parentFolderID, d
 func CreateDocxFile(filePath string, content string) error {
 	doc := document.New()
 
-	// Add content to the document
-	doc.AddParagraph().AddRun().AddText(content)
+	para := doc.AddParagraph()
+	run := para.AddRun()
+	run.AddText(content)
 
-	// Save the document to file
 	err := doc.SaveToFile(filePath)
 	if err != nil {
 		return fmt.Errorf("unable to save docx file: %v", err)

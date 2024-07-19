@@ -11,51 +11,62 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+type Root_papper_id struct {
+	Root_papper_id string `json:"root_papper_id"`
+}
+type Papper_id struct {
+	Papper_id string `json:"root_papper_id"`
+}
+
 func RootPapperInfo(C *gin.Context) {
 	userInfo, err := utils.GetUserInfo(C)
-	var papper models.Papper
-	C.ShouldBindJSON(&papper)
-	C.Set("papper", papper)
-	if err != nil {
-		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting user info. " + err.Error()})
+	var root_papper_id Root_papper_id
+	C.ShouldBindJSON(&root_papper_id)
+	rootPapper, err := RootPapper(userInfo.ID, root_papper_id.Root_papper_id)
+
+	if err == sql.ErrNoRows {
+		C.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "root folder not found in google drive. " + err.Error()})
 		return
 	}
-
-	query := "SELECT name, id FROM rootpappers WHERE user_id = $1 and id = $2"
-	var rootPapper models.RootPapper
-	row := db.DB.QueryRow(query, userInfo.ID, papper.Root_papper_id)
-	err = row.Scan(&rootPapper.Name, &rootPapper.Id)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			C.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "root folder not found in google drive. " + err.Error()})
-			return
-		}
-
-		C.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": err.Error()})
-		return
-	}
-
 	C.Set("rootPapper", rootPapper)
 
 	C.Next()
 }
+func RootPapper(userId, rootPapperId string) (models.RootPapper, error) {
+
+	query := "SELECT name, id FROM rootpappers WHERE user_id = $1 and id = $2"
+	var rootPapper models.RootPapper
+	row := db.DB.QueryRow(query, userId, rootPapperId)
+	err := row.Scan(&rootPapper.Name, &rootPapper.Id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return rootPapper, err
+		}
+		return rootPapper, err
+	}
+
+	return rootPapper, nil
+}
+
 func PapperInfo(C *gin.Context) {
-	rootPapperInfo, err := utils.GetRootPapperInfo(C)
+	userInfo, err := utils.GetUserInfo(C)
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting User info. " + err.Error()})
+		return
+	}
+	var Chapter models.Chapter
+	C.ShouldBindJSON(&Chapter)
+
+	rootPapperInfo, err := RootPapper(userInfo.ID, Chapter.Root_papper_id)
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting Root papper info. " + err.Error()})
 		return
 	}
-	papperInfo, err := utils.GetPapperInfo(C)
 
-	if err != nil {
-		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting papper info. " + err.Error()})
-		return
-	}
-
-	query := "SELECT name, description, path, created_at, root_papper_id FROM pappers WHERE root_papper_id = $1 and id = $2"
+	query := "SELECT name, id, description, path, created_at, root_papper_id FROM pappers WHERE root_papper_id = $1 and id = $2"
+	row := db.DB.QueryRow(query, rootPapperInfo.Id, Chapter.Papper_id)
 	var papper models.Papper
-	row := db.DB.QueryRow(query, rootPapperInfo.Id, papperInfo.ID)
-	err = row.Scan(&papper.Name, &papper.Description, &papper.Path, &papper.Created_at, &papper.Root_papper_id)
+	err = row.Scan(&papper.Name, &papper.ID, &papper.Description, &papper.Path, &papper.Created_at, &papper.Root_papper_id)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			C.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "root folder not found in google drive. " + err.Error()})
@@ -66,7 +77,8 @@ func PapperInfo(C *gin.Context) {
 		return
 	}
 
-	C.Set("papperInfo", papperInfo)
+	C.Set("papper", papper)
+	C.Set("chapter", Chapter)
 
 	C.Next()
 }

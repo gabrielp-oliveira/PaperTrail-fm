@@ -21,3 +21,17 @@ func GetRootPapperInfo(context *gin.Context) (models.RootPapper, error) {
 
 	return rootPapperInfo, nil
 }
+func GetChapterInfo(context *gin.Context) (models.Chapter, error) {
+
+	ChapterI, exists := context.Get("chapter")
+	if !exists {
+		return models.Chapter{}, errors.New("Unable to retrieve user information")
+	}
+
+	ChapterInfo, ok := ChapterI.(models.Chapter)
+	if !ok {
+		return models.Chapter{}, errors.New("Unable to retrieve user information")
+	}
+
+	return ChapterInfo, nil
+}
