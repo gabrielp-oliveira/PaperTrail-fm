@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"PaperTrail-fm.com/db"
+	"PaperTrail-fm.com/googleClient"
 	"golang.org/x/oauth2"
 )
 
@@ -22,38 +23,9 @@ type User struct {
 	Base_folder  string    `json:"base_folder"`
 }
 
-func (u User) GetClient(config *oauth2.Config) (*http.Client, error) {
-	var token oauth2.Token
+var googleOauthConfig = googleClient.StartCredentials()
 
-	// Recupere o token do banco de dados
-	err := db.DB.QueryRow("SELECT accessToken, refresh_token, token_expiry FROM users WHERE email = $1", u.Email).Scan(
-		&token.AccessToken, &token.RefreshToken, &token.Expiry)
-	if err != nil {
-		return nil, fmt.Errorf("unable to retrieve token from database: %v", err)
-	}
-
-	// Verifique se o token está expirado e, se necessário, use o refresh token para obter um novo token
-	if time.Now().After(token.Expiry) {
-		tokenSource := config.TokenSource(context.Background(), &token)
-		newToken, err := tokenSource.Token()
-		if err != nil {
-			return nil, fmt.Errorf("unable to refresh token: %v", err)
-		}
-		// Atualize o token no banco de dados
-		_, err = db.DB.Exec("UPDATE users SET accessToken = $1, refresh_token = $2, token_expiry = $3 WHERE email = $4",
-			newToken.AccessToken, newToken.RefreshToken, newToken.Expiry, u.Email)
-		if err != nil {
-			return nil, fmt.Errorf("unable to update token in database: %v", err)
-		}
-		token = *newToken
-	}
-
-	client := config.Client(context.Background(), &token)
-
-	return client, nil
-}
-
-func (u User) UpdateToken() error {
+func (u *User) UpdateToken() error {
 	updateQuery := "UPDATE users SET accessToken = $1, refresh_token = $2, token_expiry = $3 WHERE email = $4"
 	_, err := db.DB.Exec(updateQuery, u.AccessToken, u.RefreshToken, u.TokenExpiry, u.Email)
 	if err != nil {
@@ -61,7 +33,8 @@ func (u User) UpdateToken() error {
 	}
 	return nil
 }
-func (u User) UpdateBaseFolder() error {
+
+func (u *User) UpdateBaseFolder() error {
 	updateQuery := "UPDATE users SET base_folder = $1 WHERE email = $2"
 	_, err := db.DB.Exec(updateQuery, u.Base_folder, u.Email)
 	if err != nil {
@@ -70,19 +43,7 @@ func (u User) UpdateBaseFolder() error {
 	return nil
 }
 
-func (u User) SetToken() error {
-	insertQuery := "INSERT INTO users(email, password, created_at, id, name, accessToken, refresh_token, token_expiry) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id"
-
-	_, err := db.DB.Exec(insertQuery,
-		u.Email, "", time.Now(), u.ID, u.Name, u.AccessToken, u.RefreshToken, u.TokenExpiry)
-	if err != nil {
-		return errors.New("Unable to save token in database: " + err.Error())
-
-	}
-	return nil
-}
-
-func (u User) GetRootPappers() ([]RootPapper, error) {
+func (u *User) GetRootPappers() ([]RootPapper, error) {
 	query := "SELECT id, name FROM rootpappers WHERE user_id = $1"
 	rows, err := db.DB.Query(query, u.ID)
 	if err != nil {
@@ -102,4 +63,74 @@ func (u User) GetRootPappers() ([]RootPapper, error) {
 		return nil, err
 	}
 	return list, nil
+}
+
+type Token struct {
+	AccessToken  string    `json:"access_token"`
+	RefreshToken string    `json:"refresh_token"`
+	TokenExpiry  time.Time `json:"token_expiry"`
+}
+
+func (u *User) updateDatabase() error {
+	updateQuery := "UPDATE users SET name = $1, password = $2, accessToken = $3, refresh_token = $4, token_expiry = $5 WHERE id = $6"
+	_, err := db.DB.Exec(updateQuery, u.Name, u.Password, u.AccessToken, u.RefreshToken, u.TokenExpiry, u.ID)
+	if err != nil {
+		return errors.New("Error updating user. " + err.Error())
+	}
+	fmt.Printf("Saving token for user %s: %+v\n", u.ID, u.AccessToken)
+	return nil
+}
+
+func (u *User) UpdateOAuthToken() (*oauth2.Token, error) {
+	config := googleOauthConfig
+
+	token := &oauth2.Token{
+		AccessToken:  u.AccessToken,
+		RefreshToken: u.RefreshToken,
+		Expiry:       u.TokenExpiry,
+	}
+
+	tokenSource := config.TokenSource(context.Background(), token)
+	newToken, err := tokenSource.Token()
+	if err != nil {
+		return nil, err
+	}
+
+	u.AccessToken = newToken.AccessToken
+	u.RefreshToken = newToken.RefreshToken
+	u.TokenExpiry = newToken.Expiry
+
+	err = u.updateDatabase()
+	if err != nil {
+		return nil, err
+	}
+
+	return newToken, nil
+}
+
+func (u *User) GetClient(config *oauth2.Config) (*http.Client, error) {
+	var token oauth2.Token
+
+	err := db.DB.QueryRow("SELECT accessToken, refresh_token, token_expiry FROM users WHERE email = $1", u.Email).Scan(
+		&token.AccessToken, &token.RefreshToken, &token.Expiry)
+	if err != nil {
+		return nil, fmt.Errorf("unable to retrieve token from database: %v", err)
+	}
+
+	if time.Now().After(token.Expiry) {
+		tokenSource := config.TokenSource(context.Background(), &token)
+		newToken, err := tokenSource.Token()
+		if err != nil {
+			return nil, fmt.Errorf("unable to refresh token: %v", err)
+		}
+
+		_, err = db.DB.Exec("UPDATE users SET accessToken = $1, refresh_token = $2, token_expiry = $3 WHERE email = $4",
+			newToken.AccessToken, newToken.RefreshToken, newToken.Expiry, u.Email)
+		if err != nil {
+			return nil, fmt.Errorf("unable to update token in database: %v", err)
+		}
+		token = *newToken
+	}
+	client := config.Client(context.Background(), &token)
+	return client, nil
 }

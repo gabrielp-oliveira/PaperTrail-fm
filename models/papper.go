@@ -127,7 +127,7 @@ func (papper *Papper) GetChapterList() ([]Chapter, error) {
 	var list []Chapter
 	for rows.Next() {
 		var chapter Chapter
-		if err := rows.Scan(&chapter.Id, &chapter.Name, &chapter.Description, &chapter.Created_at); err != nil {
+		if err := rows.Scan(&chapter.Id, &chapter.Name, &chapter.Description, &chapter.Created_at, &chapter.Papper_id); err != nil {
 			return nil, err
 		}
 		list = append(list, chapter)

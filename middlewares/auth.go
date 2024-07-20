@@ -43,9 +43,12 @@ func Authenticate(context *gin.Context) {
 		context.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "Not authorized."})
 		return
 	}
-
+	_, err = userInfo.UpdateOAuthToken()
+	if err != nil {
+		context.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "error generating access token.."})
+		return
+	}
 	context.Set("userInfo", userInfo)
-
 	context.Next()
 }
 

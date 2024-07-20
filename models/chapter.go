@@ -46,3 +46,16 @@ func (e *Chapter) Save() error {
 
 	return nil
 }
+
+func GetChapterByID(id string) (*Chapter, error) {
+	query := "SELECT * FROM chapters WHERE id = ?"
+	row := db.DB.QueryRow(query, id)
+
+	var chapter Chapter
+	err := row.Scan(&chapter.Id, &chapter.Name, &chapter.Description, &chapter.Created_at, &chapter.Papper_id)
+	if err != nil {
+		return nil, err
+	}
+
+	return &chapter, nil
+}

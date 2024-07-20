@@ -33,11 +33,7 @@ func StartCredentials() *oauth2.Config {
 		RedirectURL:  "http://localhost:8080/auth/google/callback",
 		ClientSecret: ClientSecret,
 		ClientID:     ClientID,
-		Scopes: []string{"https://www.googleapis.com/auth/userinfo.profile",
-			"https://www.googleapis.com/auth/userinfo.email",
-			"https://www.googleapis.com/auth/drive",
-			"https://www.googleapis.com/auth/documents"},
-		Endpoint: google.Endpoint,
+		Endpoint:     google.Endpoint,
 	}
 }
 
@@ -45,9 +41,6 @@ func GetGoogleToken(config *oauth2.Config, code string) (*oauth2.Token, error) {
 	return config.Exchange(context.Background(), code)
 }
 
-func GetGoogleRedirectUrl() string {
-	return StartCredentials().AuthCodeURL(OauthStateString, oauth2.AccessTypeOffline, oauth2.ApprovalForce, oauth2.SetAuthURLParam("prompt", "consent"))
-}
 func GetAppDriveService() *drive.Service {
 	serviceAccountFile := "config/google_client_secret.json"
 

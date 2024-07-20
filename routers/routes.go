@@ -20,6 +20,8 @@ func RegisterRoutes(server *gin.Engine) {
 
 	authenticatedPapper := authenticated.Group("/").Use(middlewares.PapperInfo)
 	authenticatedPapper.POST("/createChapter", CreateChapter)
+	authenticatedPapper.GET("/getChapterList", GetChapterList)
+	authenticatedPapper.GET("/getChapter", GetChapter)
 
 	// authenticatedRPapper := authenticated.Use(middlewares.PapperInfo)
 

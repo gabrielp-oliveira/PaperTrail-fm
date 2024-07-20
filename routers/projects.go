@@ -1,7 +1,6 @@
 package routes
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -14,8 +13,6 @@ import (
 	"PaperTrail-fm.com/googleClient"
 	"PaperTrail-fm.com/models"
 	"PaperTrail-fm.com/utils"
-	"google.golang.org/api/drive/v3"
-	"google.golang.org/api/option"
 
 	"github.com/gin-gonic/gin"
 	git "github.com/go-git/go-git/v5"
@@ -148,15 +145,17 @@ func CreateRootPapper(C *gin.Context) {
 		return
 	}
 
-	client, err := userInfo.GetClient(googleOauthConfig)
-	if err != nil {
-		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error file listo. " + err.Error()})
-	}
+	// client, err := userInfo.GetClient(googleOauthConfig)
+	// if err != nil {
+	// 	C.JSON(http.StatusInternalServerError, gin.H{"error": "Error file listo. " + err.Error()})
+	// }
 
-	driveSrv, err := drive.NewService(context.Background(), option.WithHTTPClient(client))
-	if err != nil {
-		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error file listo. " + err.Error()})
-	}
+	// driveSrv, err := drive.NewService(context.Background(), option.WithHTTPClient(client))
+	// if err != nil {
+	// 	C.JSON(http.StatusInternalServerError, gin.H{"error": "Error file listo. " + err.Error()})
+	// }
+
+	driveSrv := googleClient.GetAppDriveService()
 
 	if userInfo.Base_folder == "" {
 		folder, err := googleClient.CreateFolder(driveSrv, userInfo.ID, "")
@@ -198,17 +197,18 @@ func CreatePapper(C *gin.Context) {
 		return
 	}
 
-	client, err := userInfo.GetClient(googleOauthConfig)
-	if err != nil {
-		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error geting google client info. " + err.Error()})
-		return
-	}
+	// client, err := userInfo.GetClient(googleOauthConfig)
+	// if err != nil {
+	// 	C.JSON(http.StatusInternalServerError, gin.H{"error": "Error geting google client info. " + err.Error()})
+	// 	return
+	// }
 
-	driveSrv, err := drive.NewService(context.Background(), option.WithHTTPClient(client))
-	if err != nil {
-		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error geting google driver. " + err.Error()})
-		return
-	}
+	// driveSrv, err := drive.NewService(context.Background(), option.WithHTTPClient(client))
+	driveSrv := googleClient.GetAppDriveService()
+	// if err != nil {
+	// 	C.JSON(http.StatusInternalServerError, gin.H{"error": "Error geting google driver. " + err.Error()})
+	// 	return
+	// }
 	folder, err := googleClient.CreateFolder(driveSrv, papper.Name, rootPapperInfo.Id)
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating folder. " + err.Error()})
@@ -291,11 +291,25 @@ func CreatePapper(C *gin.Context) {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error " + err.Error()})
 		return
 	}
+
+	var chapter models.Chapter
+	chapter.Id = docId
+	chapter.Name = "chapter 1"
+	chapter.Papper_id = papper.ID
+	chapter.Description = "First chapter from " + papper.Name
+	chapter.Created_at = time.Now()
+	err = chapter.Save()
+	if err != nil {
+		gitConfig.RemoveLocalRepo(repoPath)
+		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error " + err.Error()})
+		return
+	}
 	gitConfig.RemoveLocalRepo(repoPath)
 	log.Println("Repository successfully uploaded to Google Drive")
 
-	C.JSON(http.StatusOK, docId)
+	C.JSON(http.StatusOK, papper.ID)
 }
+
 func CreateChapter(C *gin.Context) {
 
 	chapter, err := utils.GetChapterInfo(C)
@@ -314,17 +328,18 @@ func CreateChapter(C *gin.Context) {
 		return
 	}
 
-	client, err := userInfo.GetClient(googleOauthConfig)
-	if err != nil {
-		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error geting google client info. " + err.Error()})
-		return
-	}
+	// client, err := userInfo.GetClient(googleOauthConfig)
+	// if err != nil {
+	// 	C.JSON(http.StatusInternalServerError, gin.H{"error": "Error geting google client info. " + err.Error()})
+	// 	return
+	// }
 
-	driveSrv, err := drive.NewService(context.Background(), option.WithHTTPClient(client))
-	if err != nil {
-		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error geting google driver. " + err.Error()})
-		return
-	}
+	// driveSrv, err := drive.NewService(context.Background(), option.WithHTTPClient(client))
+	// if err != nil {
+	// 	C.JSON(http.StatusInternalServerError, gin.H{"error": "Error geting google driver. " + err.Error()})
+	// 	return
+	// }
+	driveSrv := googleClient.GetAppDriveService()
 
 	repoPath := "tempRepositories/" + papper.ID + "/" + chapter.Name
 	err = os.MkdirAll(repoPath, os.ModePerm)
@@ -421,6 +436,21 @@ func GetRootPapperList(C *gin.Context) {
 
 }
 
+func GetChapterList(C *gin.Context) {
+	papper, err := utils.GetPapperInfo(C)
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	list, err := papper.GetChapterList()
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting chapter. " + err.Error()})
+		return
+	}
+	C.JSON(http.StatusOK, list)
+
+}
+
 func getPapperList(C *gin.Context) {
 	rootPapper, err := utils.GetRootPapperInfo(C)
 	if err != nil {
@@ -434,4 +464,18 @@ func getPapperList(C *gin.Context) {
 	}
 	C.JSON(http.StatusOK, list)
 
+}
+
+func GetChapter(C *gin.Context) {
+	userInfo, err := utils.GetUserInfo(C)
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting user info. " + err.Error()})
+		return
+	}
+
+	var chapter models.Chapter
+	C.ShouldBindJSON(&chapter)
+
+	url := fmt.Sprintf("https://docs.google.com/document/d/%s/edit?access_token=%s", chapter.Id, userInfo.AccessToken)
+	C.JSON(http.StatusOK, url)
 }

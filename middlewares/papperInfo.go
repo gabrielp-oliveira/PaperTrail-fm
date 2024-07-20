@@ -20,15 +20,16 @@ type Papper_id struct {
 
 func RootPapperInfo(C *gin.Context) {
 	userInfo, err := utils.GetUserInfo(C)
-	var root_papper_id Root_papper_id
-	C.ShouldBindJSON(&root_papper_id)
-	rootPapper, err := RootPapper(userInfo.ID, root_papper_id.Root_papper_id)
+	var papper models.Papper
+	C.ShouldBindJSON(&papper)
+	rootPapper, err := RootPapper(userInfo.ID, papper.Root_papper_id)
 
 	if err == sql.ErrNoRows {
 		C.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "root folder not found in google drive. " + err.Error()})
 		return
 	}
 	C.Set("rootPapper", rootPapper)
+	C.Set("papper", papper)
 
 	C.Next()
 }
