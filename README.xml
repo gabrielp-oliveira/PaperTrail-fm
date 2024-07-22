@@ -1,0 +1,20 @@
+select * from users;
+select * from rootpappers;
+select * from pappers;
+select * from chapters;
+
+DELETE FROM chapters;
+DELETE FROM pappers;
+DELETE FROM rootpappers;
+DELETE FROM users;
+
+
+1//05E2_zuBc225bCgYIARAAGAUSNwF-L9IrmzdPo_UvtPBnZ5W_gYBuHP-8iMMY3aCITkxp5oFWP-Y7eHtMr_6ZTeg4uQdWWLYkvEc
+1//05E2_zuBc225bCgYIARAAGAUSNwF-L9IrmzdPo_UvtPBnZ5W_gYBuHP-8iMMY3aCITkxp5oFWP-Y7eHtMr_6ZTeg4uQdWWLYkvEc
+	
+	
+2024-07-19 19:50:00.912286
+2024-07-19 21:55:21.636898
+	
+ya29.a0AXooCgtkdEYh5ChQhc1daN_Oy4fsRUrgh5KfImqdhrBHerZuGoxYLdDG-40xG1WYQ8q0q4QlQVLK5T3BJi7zXL-Yk4x_AqKGPYqa5TK52-fiFfbjxReSbJfZeIHAXzswNlOdl9F_Bi7CloE1CfWFoAtWBBxzzU12tl0naCgYKAc8SARESFQHGX2MiaxSYFLs5J9YWGCadkv4UtQ0171
+ya29.a0AXooCgv7iqempIqEJBd70Bpd2gwuIsabn7H9-7w7YXdCKEnADVqD9RfroM8DQ4O9Em4FZCZyvkS20EtLLAHtLLvQ9ngMuDGybjWDlcFcxfEYeO2Oz1g_DNkkGm_1cHxXUa4hDZBNIu2jjVgA2ssyXDb9K3RlbsdTLXbxaCgYKAdYSARESFQHGX2MiQbOddicA23-8OILZojoH_A0171

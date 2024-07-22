@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"PaperTrail-fm.com/db"
+	"google.golang.org/api/drive/v3"
 )
 
 type Papper struct {
@@ -116,7 +117,19 @@ func (papper *Papper) Delete() error {
 	return err
 }
 
-func (papper *Papper) GetChapterList() ([]Chapter, error) {
+type chapterWithRevisions struct {
+	Revisions []revision
+
+	Chapter
+	Iframe string
+}
+
+type revision struct {
+	Id           string
+	ModifiedTime string
+}
+
+func (papper *Papper) GetChapterList(driver *drive.Service, userAccessToken string) ([]chapterWithRevisions, error) {
 	query := "SELECT id, name, description, created_at, Papper_id FROM chapters WHERE papper_id = $1"
 	rows, err := db.DB.Query(query, papper.ID)
 	if err != nil {
@@ -124,16 +137,31 @@ func (papper *Papper) GetChapterList() ([]Chapter, error) {
 	}
 	defer rows.Close()
 
-	var list []Chapter
+	var list []chapterWithRevisions
 	for rows.Next() {
-		var chapter Chapter
-		if err := rows.Scan(&chapter.Id, &chapter.Name, &chapter.Description, &chapter.Created_at, &chapter.Papper_id); err != nil {
+		var chapter chapterWithRevisions
+		if err := rows.Scan(&chapter.Id, &chapter.Name, &chapter.Description, &chapter.CreatedAt, &chapter.PapperID); err != nil {
 			return nil, err
 		}
+		revisions, _ := driver.Revisions.List(chapter.Id).Do()
+
+		for _, element := range revisions.Revisions {
+
+			var rev revision
+			rev.Id = element.Id
+			rev.ModifiedTime = element.ModifiedTime
+			chapter.Revisions = append(chapter.Revisions, rev)
+		}
+
+		chapter.Iframe = GenerateSecureIframeURL(chapter.Id, userAccessToken)
 		list = append(list, chapter)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
 	return list, nil
+}
+
+func GenerateSecureIframeURL(fileID, token string) string {
+	return fmt.Sprintf("https://docs.google.com/document/d/%s/edit?access_token=%s", fileID, token)
 }

@@ -11,15 +11,12 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type Root_papper_id struct {
-	Root_papper_id string `json:"root_papper_id"`
-}
-type Papper_id struct {
-	Papper_id string `json:"root_papper_id"`
-}
-
 func RootPapperInfo(C *gin.Context) {
 	userInfo, err := utils.GetUserInfo(C)
+	if err == sql.ErrNoRows {
+		C.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": err.Error()})
+		return
+	}
 	var papper models.Papper
 	C.ShouldBindJSON(&papper)
 	rootPapper, err := RootPapper(userInfo.ID, papper.Root_papper_id)
@@ -58,14 +55,14 @@ func PapperInfo(C *gin.Context) {
 	var Chapter models.Chapter
 	C.ShouldBindJSON(&Chapter)
 
-	rootPapperInfo, err := RootPapper(userInfo.ID, Chapter.Root_papper_id)
+	rootPapperInfo, err := RootPapper(userInfo.ID, Chapter.RootPapperID)
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting Root papper info. " + err.Error()})
 		return
 	}
 
 	query := "SELECT name, id, description, path, created_at, root_papper_id FROM pappers WHERE root_papper_id = $1 and id = $2"
-	row := db.DB.QueryRow(query, rootPapperInfo.Id, Chapter.Papper_id)
+	row := db.DB.QueryRow(query, rootPapperInfo.Id, Chapter.PapperID)
 	var papper models.Papper
 	err = row.Scan(&papper.Name, &papper.ID, &papper.Description, &papper.Path, &papper.Created_at, &papper.Root_papper_id)
 	if err != nil {
@@ -80,6 +77,41 @@ func PapperInfo(C *gin.Context) {
 
 	C.Set("papper", papper)
 	C.Set("chapter", Chapter)
+
+	C.Next()
+}
+
+func EventHandler(C *gin.Context) {
+	userInfo, err := utils.GetUserInfo(C)
+	if err == sql.ErrNoRows {
+		C.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": err.Error()})
+		return
+	}
+	var event models.Event
+	C.ShouldBindJSON(&event)
+	rootPapper, err := RootPapper(userInfo.ID, event.Root_papper_id)
+	C.Set("rootPapper", rootPapper)
+
+	C.Set("event", event)
+
+	C.Next()
+}
+func ConnectionHandler(C *gin.Context) {
+	userInfo, err := utils.GetUserInfo(C)
+	if err == sql.ErrNoRows {
+		C.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": err.Error()})
+		return
+	}
+	type Cnn struct {
+		models.Connection
+		RootPapperId string
+	}
+	var connection Cnn
+	C.ShouldBindJSON(&connection)
+
+	rootPapper, err := RootPapper(userInfo.ID, connection.RootPapperId)
+	C.Set("rootPapper", rootPapper)
+	C.Set("connection", connection)
 
 	C.Next()
 }

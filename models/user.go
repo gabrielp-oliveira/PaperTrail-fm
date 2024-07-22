@@ -77,7 +77,6 @@ func (u *User) updateDatabase() error {
 	if err != nil {
 		return errors.New("Error updating user. " + err.Error())
 	}
-	fmt.Printf("Saving token for user %s: %+v\n", u.ID, u.AccessToken)
 	return nil
 }
 

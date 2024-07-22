@@ -38,50 +38,72 @@ func InitDB() {
 
 func createTables(db *sql.DB) {
 
-	createRootProjectTable := `
-CREATE TABLE IF NOT EXISTS rootpappers (
-	id TEXT PRIMARY KEY,
-	name TEXT NOT NULL,
-	created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	user_id TEXT,
-	FOREIGN KEY(user_id) REFERENCES users(id)
-);
-`
-	createPappersTable := `
-CREATE TABLE IF NOT EXISTS pappers (
-	id TEXT PRIMARY KEY,
-	name TEXT NOT NULL,
-	description TEXT NOT NULL,
-	path TEXT NOT NULL,
-	created_at TIMESTAMP NOT NULL,
-	root_papper_id TEXT,
-	FOREIGN KEY(root_papper_id) REFERENCES rootpappers(id)
-);
-`
+	createTables := []string{
 
-	CreateChapterTable := `
-CREATE TABLE IF NOT EXISTS chapters (
-	id TEXT PRIMARY KEY,
-	name TEXT NOT NULL,
-	description TEXT NOT NULL,
-	created_at TIMESTAMP NOT NULL,
-	Papper_id TEXT,
-	FOREIGN KEY(Papper_id) REFERENCES pappers(id)
-);
-`
+		`CREATE TABLE IF NOT EXISTS rootpappers (
+			id TEXT PRIMARY KEY,
+			name TEXT NOT NULL,
+			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			user_id TEXT,
+			FOREIGN KEY(user_id) REFERENCES users(id)
+		);`,
 
-	_, err := db.Exec(createRootProjectTable)
-	if err != nil {
-		log.Fatalf("Could not create Rootpappers table: %v", err)
+		`CREATE TABLE IF NOT EXISTS pappers (
+			id TEXT PRIMARY KEY,
+			name TEXT NOT NULL,
+			description TEXT NOT NULL,
+			path TEXT NOT NULL,
+			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			root_papper_id TEXT,
+			FOREIGN KEY(root_papper_id) REFERENCES rootpappers(id)
+		);`,
+
+		`CREATE TABLE IF NOT EXISTS timelines (
+			id TEXT PRIMARY KEY,
+			root_papper_id TEXT NOT NULL,
+			date DATE NOT NULL,
+			FOREIGN KEY(root_papper_id) REFERENCES rootpappers(id)
+		);`,
+
+		`CREATE TABLE IF NOT EXISTS events (
+			id TEXT PRIMARY KEY,
+			name TEXT NOT NULL,
+			start_date DATE NOT NULL,
+			end_date DATE NOT NULL,
+			root_papper_id TEXT,
+			FOREIGN KEY(root_papper_id) REFERENCES rootpappers(id)
+		);`,
+
+		`CREATE TABLE IF NOT EXISTS chapters (
+			id TEXT PRIMARY KEY,
+			name TEXT NOT NULL,
+			description TEXT NOT NULL,
+			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			papper_id TEXT,
+			root_papper_id TEXT,
+			time_line_id TEXT,
+			event_id TEXT,
+			FOREIGN KEY(papper_id) REFERENCES pappers(id),
+			FOREIGN KEY(root_papper_id) REFERENCES rootpappers(id),
+			FOREIGN KEY(time_line_id) REFERENCES timelines(id),
+			FOREIGN KEY(event_id) REFERENCES events(id)
+		);`,
+
+		`CREATE TABLE IF NOT EXISTS connections (
+			id TEXT PRIMARY KEY,
+			source_chapter_id TEXT NOT NULL,
+			target_chapter_id TEXT NOT NULL,
+			FOREIGN KEY(source_chapter_id) REFERENCES chapters(id),
+			FOREIGN KEY(target_chapter_id) REFERENCES chapters(id)
+		);`,
 	}
 
-	_, err = db.Exec(createPappersTable)
-	if err != nil {
-		log.Fatalf("Could not create pappers table: %v", err)
-	}
-	_, err = db.Exec(CreateChapterTable)
-	if err != nil {
-		log.Fatalf("Could not create chapter table: %v", err)
+	for _, query := range createTables {
+		_, err := db.Exec(query)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 
+	fmt.Println("Tabelas criadas com sucesso!")
 }

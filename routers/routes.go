@@ -2,7 +2,6 @@ package routes
 
 import (
 	"PaperTrail-fm.com/middlewares"
-	"PaperTrail-fm.com/models"
 
 	"github.com/gin-gonic/gin"
 )
@@ -18,21 +17,19 @@ func RegisterRoutes(server *gin.Engine) {
 	authenticatedRootPapper.POST("/createPapper", CreatePapper)
 	authenticatedRootPapper.GET("/getPapperList", getPapperList)
 
+	authenticatedRootPapper.GET("/getRootData", GetRootData)
+
+	authEvent := authenticated.Group("/").Use(middlewares.EventHandler)
+	authEvent.POST("/insertEvent", InsertEvent)
+	authEvent.DELETE("/removeEvent", RemoveEvent)
+
+	authConnection := authenticated.Group("/").Use(middlewares.ConnectionHandler)
+	authConnection.POST("/insertConnection", InsertConnection)
+	authConnection.POST("/removeConnection", RemoveConnection)
+
 	authenticatedPapper := authenticated.Group("/").Use(middlewares.PapperInfo)
 	authenticatedPapper.POST("/createChapter", CreateChapter)
 	authenticatedPapper.GET("/getChapterList", GetChapterList)
 	authenticatedPapper.GET("/getChapter", GetChapter)
 
-	// authenticatedRPapper := authenticated.Use(middlewares.PapperInfo)
-
-	// authenticated.POST("/GetFileUpdateList", GetFileUpdateList)
-	// authenticated.GET("/GetCommitDiff", GetCommitDiff)
-	// authenticated.GET("/getFile", GetFile)
-	// authenticated.POST("/createFile", CreateFile)
-	// authenticated.POST("/updateFile", UpdateFile)
-	// authenticated.POST("/GetFileList", GetFileList)
-	// authenticated.POST("/GetDocxIdByProject", GetDocxIdByProject)
-
-	server.GET("/Upload", models.Upload)
-	server.GET("/download", models.Download)
 }

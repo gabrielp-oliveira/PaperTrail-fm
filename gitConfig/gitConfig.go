@@ -68,7 +68,7 @@ func RemoveLocalRepo(repoPath string) error {
 	return nil
 }
 
-func UploadDirectoryToDrive(service *drive.Service, localPath, parentFolderID, docId string) (string, error) {
+func UploadDirectoryToDrive(service *drive.Service, userEmail, localPath, parentFolderID, docId string) (string, error) {
 	fileInfo, err := os.Stat(localPath)
 	if err != nil {
 		return "", fmt.Errorf("unable to read directory info: %v", err)
@@ -98,7 +98,7 @@ func UploadDirectoryToDrive(service *drive.Service, localPath, parentFolderID, d
 		filePath := filepath.Join(localPath, file.Name())
 
 		if file.IsDir() {
-			dcId, err := UploadDirectoryToDrive(service, filePath, folderID, docId)
+			dcId, err := UploadDirectoryToDrive(service, userEmail, filePath, folderID, docId)
 			if err != nil {
 				log.Printf("unable to upload directory '%s': %v", filePath, err)
 				continue
@@ -116,7 +116,6 @@ func UploadDirectoryToDrive(service *drive.Service, localPath, parentFolderID, d
 				mimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 			}
 			fileMetadata.MimeType = mimeType
-
 			fileContent, err := os.Open(filePath)
 			if err != nil {
 				log.Printf("unable to open file '%s': %v", filePath, err)
@@ -124,6 +123,18 @@ func UploadDirectoryToDrive(service *drive.Service, localPath, parentFolderID, d
 			}
 
 			doc, err := service.Files.Create(fileMetadata).Media(fileContent).Do()
+			if filepath.Ext(filePath) == ".docx" {
+				permission := &drive.Permission{
+					Type:         "user",
+					Role:         "writer",
+					EmailAddress: userEmail,
+				}
+
+				_, err = service.Permissions.Create(doc.Id, permission).Do()
+				if err != nil {
+					log.Fatalf("Unable to create permission: %v", err)
+				}
+			}
 			fileContent.Close()
 			if err != nil {
 				log.Printf("unable to upload file '%s': %v", filePath, err)
