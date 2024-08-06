@@ -184,3 +184,31 @@ func CreateReadmeFile(service *drive.Service, parentID, content string) (*drive.
 
 	return createdFile, nil
 }
+
+func CreateChapter(service *drive.Service, name, papperId, userEmail string) (string, error) {
+	folder := &drive.File{
+		Name:     name,
+		MimeType: "application/vnd.google-apps.folder",
+		Parents:  []string{papperId},
+	}
+	createdFolder, err := service.Files.Create(folder).Do()
+	if err != nil {
+		return "", err
+	}
+	fileMetadata := &drive.File{
+		Name:     name,
+		Parents:  []string{createdFolder.Id},
+		MimeType: "application/vnd.google-apps.document",
+	}
+	doc, err := service.Files.Create(fileMetadata).Do()
+
+	permission := &drive.Permission{
+		Type:         "user",
+		Role:         "writer",
+		EmailAddress: userEmail,
+	}
+
+	_, err = service.Permissions.Create(doc.Id, permission).Do()
+
+	return doc.Id, nil
+}

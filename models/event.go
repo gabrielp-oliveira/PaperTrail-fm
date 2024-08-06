@@ -62,3 +62,19 @@ func (ev *Event) Delete() error {
 
 	return nil
 }
+
+func (ev *Event) Update() error {
+	query := `
+	UPDATE events 
+	SET name = $1, start_date = $2, end_date = $3, root_papper_id = $4
+	WHERE id = $5
+	`
+	_, err := db.DB.Exec(query, ev.Name, ev.Start_date, ev.End_date, ev.Root_papper_id, ev.Id)
+	if err != nil {
+		return fmt.Errorf("error updating event: %v", err)
+	}
+
+	fmt.Println("Updated event in database")
+
+	return nil
+}

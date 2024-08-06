@@ -12,18 +12,18 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func Authenticate(context *gin.Context) {
-	token := context.Request.Header.Get("Authorization")
+func Authenticate(C *gin.Context) {
+	token := C.Request.Header.Get("Authorization")
 
 	if token == "" {
-		context.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "Not authorized."})
+		C.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "Not authorized."})
 		return
 	}
 
 	userEmail, err := utils.VerifyToken(token)
 
 	if err != nil {
-		context.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "Not authorized."})
+		C.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "Not authorized."})
 		return
 	}
 	query := "SELECT name, email,base_folder, id, name, accessToken, refresh_token, token_expiry FROM users WHERE email = $1"
@@ -35,21 +35,26 @@ func Authenticate(context *gin.Context) {
 	if err != nil {
 		if err == sql.ErrNoRows {
 			// Tratar caso não haja registros correspondentes
-			context.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "Not authorized."})
+			C.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "Not authorized."})
 			return
 		}
 		// Outros erros podem ser tratados aqui
 
-		context.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "Not authorized."})
+		C.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "Not authorized."})
 		return
 	}
-	_, err = userInfo.UpdateOAuthToken()
+	newToken, err := userInfo.UpdateOAuthToken()
 	if err != nil {
-		context.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "error generating access token.."})
+		C.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "error generating access token.."})
 		return
 	}
-	context.Set("userInfo", userInfo)
-	context.Next()
+
+	C.Writer.Header().Set("accessToken", newToken.AccessToken)
+	C.Writer.Header().Set("expiry", newToken.Expiry.Format(time.RFC3339))
+	C.Writer.Header().Set("Access-Control-Expose-Headers", "accessToken, expiry")
+
+	C.Set("userInfo", userInfo)
+	C.Next()
 }
 
 type UserBasicInfo struct {

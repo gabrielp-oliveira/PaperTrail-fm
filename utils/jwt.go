@@ -10,11 +10,11 @@ import (
 
 const secretKey = "supersecret"
 
-func GenerateToken(email string, userId int64) (string, error) {
+func GenerateToken(email string, userId string) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"email":  email,
 		"userId": userId,
-		"exp":    time.Now().Add(time.Hour * 2).Unix(),
+		"exp":    time.Now().Add(time.Hour * 4).Unix(),
 	})
 
 	return token.SignedString([]byte(secretKey))
@@ -24,23 +24,23 @@ func VerifyToken(token string) (string, error) {
 	parsedToken, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
 		_, ok := token.Method.(*jwt.SigningMethodHMAC)
 		if !ok {
-			return nil, errors.New("Unexpected signing method")
+			return nil, errors.New("unexpected signing method /n")
 		}
 		return []byte(secretKey), nil
 	})
 
 	if err != nil {
 		fmt.Println("Could not parse token")
-		return "", errors.New("Could not parse token.")
+		return "", errors.New("Could not parse token. " + err.Error())
 	}
 
 	if !parsedToken.Valid {
-		return "", errors.New("Invalid token!")
+		return "", errors.New("invalid token! /n")
 	}
 
 	claims, ok := parsedToken.Claims.(jwt.MapClaims)
 	if !ok {
-		return "", errors.New("Invalid token claims.")
+		return "", errors.New("invalid token claims./n")
 	}
 
 	email, ok := claims["email"].(string)

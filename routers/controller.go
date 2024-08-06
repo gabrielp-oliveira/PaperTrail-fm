@@ -210,7 +210,6 @@ func CreateChapter(C *gin.Context) {
 	repoPath := "tempRepositories/" + papper.ID + "/" + chapter.Name
 	err = os.MkdirAll(repoPath, os.ModePerm)
 	if err != nil {
-		gitConfig.RemoveLocalRepo(repoPath)
 		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error " + err.Error()})
 		return
 	}
@@ -219,27 +218,23 @@ func CreateChapter(C *gin.Context) {
 	docxContent := "This is the content of " + chapter.Name
 	err = gitConfig.CreateDocxFile(docxFilePath, docxContent)
 	if err != nil {
-		gitConfig.RemoveLocalRepo(repoPath)
 		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error " + err.Error()})
 		return
 	}
 	repo, err := git.PlainInit(repoPath, false)
 	if err != nil {
-		gitConfig.RemoveLocalRepo(repoPath)
 		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error " + err.Error()})
 		return
 	}
 
 	worktree, err := repo.Worktree()
 	if err != nil {
-		gitConfig.RemoveLocalRepo(repoPath)
 		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error " + err.Error()})
 		return
 	}
 
 	_, err = worktree.Add(chapter.Name + ".docx")
 	if err != nil {
-		gitConfig.RemoveLocalRepo(repoPath)
 		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error " + err.Error()})
 		return
 	}
@@ -252,21 +247,19 @@ func CreateChapter(C *gin.Context) {
 		},
 	})
 	if err != nil {
-		gitConfig.RemoveLocalRepo(repoPath)
 		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error " + err.Error()})
 		return
 	}
 
 	_, err = repo.CommitObject(commit)
 	if err != nil {
-		gitConfig.RemoveLocalRepo(repoPath)
 		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error " + err.Error()})
 		return
 	}
 
-	docId, err := gitConfig.UploadDirectoryToDrive(driveSrv, userInfo.Email, repoPath, papper.ID, "")
+	docId, err := googleClient.CreateChapter(driveSrv, chapter.Name, chapter.PapperID, userInfo.Email)
+
 	if err != nil {
-		gitConfig.RemoveLocalRepo(repoPath)
 		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error " + err.Error()})
 		return
 	}
@@ -416,6 +409,32 @@ func RemoveEvent(C *gin.Context) {
 	}
 
 	err = event.Delete()
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	environment, err := rootPapper.GetRootData()
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	C.JSON(http.StatusOK, environment)
+
+}
+func UpdateEvent(C *gin.Context) {
+	rootPapper, err := utils.GetRootPapperInfo(C)
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	event, err := utils.GetEventInfo(C)
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	err = event.Update()
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

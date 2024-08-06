@@ -22,6 +22,7 @@ func RegisterRoutes(server *gin.Engine) {
 	authEvent := authenticated.Group("/").Use(middlewares.EventHandler)
 	authEvent.POST("/insertEvent", InsertEvent)
 	authEvent.DELETE("/removeEvent", RemoveEvent)
+	authEvent.PUT("/updateEvent", UpdateEvent)
 
 	authConnection := authenticated.Group("/").Use(middlewares.ConnectionHandler)
 	authConnection.POST("/insertConnection", InsertConnection)

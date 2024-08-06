@@ -97,9 +97,9 @@ func (u *User) UpdateOAuthToken() (*oauth2.Token, error) {
 
 	u.AccessToken = newToken.AccessToken
 	u.RefreshToken = newToken.RefreshToken
-	u.TokenExpiry = newToken.Expiry
+	u.TokenExpiry = newToken.Expiry.Add(time.Hour * 8)
 
-	err = u.updateDatabase()
+	err = u.UpdateToken()
 	if err != nil {
 		return nil, err
 	}
@@ -129,6 +129,8 @@ func (u *User) GetClient(config *oauth2.Config) (*http.Client, error) {
 			return nil, fmt.Errorf("unable to update token in database: %v", err)
 		}
 		token = *newToken
+	} else {
+		return nil, fmt.Errorf("session expired")
 	}
 	client := config.Client(context.Background(), &token)
 	return client, nil
