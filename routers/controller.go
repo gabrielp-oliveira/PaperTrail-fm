@@ -44,18 +44,17 @@ func GetCommitDiff(context *gin.Context) {
 
 }
 
-func CreateRootPapper(C *gin.Context) {
+func CreateWorld(C *gin.Context) {
 	userInfo, err := utils.GetUserInfo(C)
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting user info. " + err.Error()})
 		return
 	}
-	var rp models.RootPapper
+	var rp models.Worlds
 	C.ShouldBindJSON(&rp)
 
 	if rp.Name == "" {
 		rp.Name = "PapperTrail"
-		return
 	}
 
 	// client, err := userInfo.GetClient(googleOauthConfig)
@@ -74,6 +73,7 @@ func CreateRootPapper(C *gin.Context) {
 		folder, err := googleClient.CreateFolder(driveSrv, userInfo.ID, "")
 		if err != nil {
 			C.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating user base folder. " + err.Error()})
+			return
 		}
 		userInfo.Base_folder = folder.Id
 		userInfo.UpdateBaseFolder()
@@ -81,19 +81,20 @@ func CreateRootPapper(C *gin.Context) {
 
 	folderId, err := googleClient.CreateFolder(driveSrv, rp.Name, userInfo.Base_folder)
 	if err != nil {
-		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating root folder.  " + err.Error()})
+		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating world .  " + err.Error()})
+		return
 	}
 
 	rp.Id = folderId.Id
 	rp.UserID = userInfo.ID
-
+	rp.CreatedAt = time.Now()
 	rp.Save()
 
 	C.JSON(http.StatusOK, gin.H{"message": rp.Name + " folder created successfully."})
 }
 
 func CreatePapper(C *gin.Context) {
-	rootPapperInfo, err := utils.GetRootPapperInfo(C)
+	worldsInfo, err := utils.GetWorldsInfo(C)
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -122,13 +123,13 @@ func CreatePapper(C *gin.Context) {
 	// 	C.JSON(http.StatusInternalServerError, gin.H{"error": "Error geting google driver. " + err.Error()})
 	// 	return
 	// }
-	folder, err := googleClient.CreateFolder(driveSrv, papper.Name, rootPapperInfo.Id)
+	folder, err := googleClient.CreateFolder(driveSrv, papper.Name, worldsInfo.Id)
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating folder. " + err.Error()})
 		return
 	}
-	papper.Root_papper_id = rootPapperInfo.Id
-	papper.Path = rootPapperInfo.Name + "/" + papper.Name
+	papper.World_id = worldsInfo.Id
+	papper.Path = worldsInfo.Name + "/" + papper.Name
 	papper.ID = folder.Id
 	err = papper.Save()
 	if err != nil {
@@ -185,7 +186,7 @@ func CreateChapter(C *gin.Context) {
 	}
 	papper, err := utils.GetPapperInfo(C)
 	if err != nil {
-		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting root folder info. " + err.Error()})
+		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting world  info. " + err.Error()})
 		return
 	}
 	userInfo, err := utils.GetUserInfo(C)
@@ -280,13 +281,13 @@ func CreateChapter(C *gin.Context) {
 
 }
 
-func GetRootPapperList(C *gin.Context) {
+func GetWorldsList(C *gin.Context) {
 	userInfo, err := utils.GetUserInfo(C)
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting user info. " + err.Error()})
 		return
 	}
-	list, err := userInfo.GetRootPappers()
+	list, err := userInfo.GetWorldss()
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting user root papper. " + err.Error()})
 		return
@@ -318,12 +319,12 @@ func GetChapterList(C *gin.Context) {
 }
 
 func getPapperList(C *gin.Context) {
-	rootPapper, err := utils.GetRootPapperInfo(C)
+	worlds, err := utils.GetWorldsInfo(C)
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	list, err := rootPapper.GetPapperList()
+	list, err := worlds.GetPapperList()
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting papper. " + err.Error()})
 		return
@@ -351,12 +352,12 @@ func GetChapter(C *gin.Context) {
 }
 
 func GetRootData(C *gin.Context) {
-	rootPapper, err := utils.GetRootPapperInfo(C)
+	worlds, err := utils.GetWorldsInfo(C)
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	environment, err := rootPapper.GetRootData()
+	environment, err := worlds.GetRootData()
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -367,7 +368,7 @@ func GetRootData(C *gin.Context) {
 }
 
 func InsertEvent(C *gin.Context) {
-	rootPapper, err := utils.GetRootPapperInfo(C)
+	worlds, err := utils.GetWorldsInfo(C)
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -383,7 +384,7 @@ func InsertEvent(C *gin.Context) {
 	event.Id = id
 	event.Save()
 
-	environment, err := rootPapper.GetRootData()
+	environment, err := worlds.GetRootData()
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -392,7 +393,7 @@ func InsertEvent(C *gin.Context) {
 
 }
 func RemoveEvent(C *gin.Context) {
-	rootPapper, err := utils.GetRootPapperInfo(C)
+	worlds, err := utils.GetWorldsInfo(C)
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -413,7 +414,7 @@ func RemoveEvent(C *gin.Context) {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	environment, err := rootPapper.GetRootData()
+	environment, err := worlds.GetRootData()
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -422,7 +423,7 @@ func RemoveEvent(C *gin.Context) {
 
 }
 func UpdateEvent(C *gin.Context) {
-	rootPapper, err := utils.GetRootPapperInfo(C)
+	worlds, err := utils.GetWorldsInfo(C)
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -439,7 +440,7 @@ func UpdateEvent(C *gin.Context) {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	environment, err := rootPapper.GetRootData()
+	environment, err := worlds.GetRootData()
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -448,7 +449,7 @@ func UpdateEvent(C *gin.Context) {
 
 }
 func InsertConnection(C *gin.Context) {
-	rootPapper, err := utils.GetRootPapperInfo(C)
+	worlds, err := utils.GetWorldsInfo(C)
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -465,7 +466,7 @@ func InsertConnection(C *gin.Context) {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	environment, err := rootPapper.GetRootData()
+	environment, err := worlds.GetRootData()
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -474,7 +475,7 @@ func InsertConnection(C *gin.Context) {
 
 }
 func RemoveConnection(C *gin.Context) {
-	rootPapper, err := utils.GetRootPapperInfo(C)
+	worlds, err := utils.GetWorldsInfo(C)
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -493,7 +494,7 @@ func RemoveConnection(C *gin.Context) {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	environment, err := rootPapper.GetRootData()
+	environment, err := worlds.GetRootData()
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

@@ -8,11 +8,11 @@ import (
 )
 
 type Event struct {
-	Id             string `json:"id"`
-	Name           string `json:"name"`
-	Start_date     string `json:"start_date"`
-	End_date       string `json:"end_date"`
-	Root_papper_id string `json:"root_papper_id"`
+	Id         string `json:"id"`
+	Name       string `json:"name"`
+	Start_date string `json:"start_date"`
+	End_date   string `json:"end_date"`
+	World_id   string `json:"world_id"`
 }
 
 func (ev *Event) Save() error {
@@ -29,10 +29,10 @@ func (ev *Event) Save() error {
 	if err == sql.ErrNoRows {
 		// Inserir novo evento na tabela events
 		query := `
-			INSERT INTO events (id, name, start_date, end_date, root_papper_id)
+			INSERT INTO events (id, name, start_date, end_date, world_id)
 			VALUES ($1, $2, $3, $4, $5)
 		`
-		_, err := db.DB.Exec(query, ev.Id, ev.Name, ev.Start_date, ev.End_date, ev.Root_papper_id)
+		_, err := db.DB.Exec(query, ev.Id, ev.Name, ev.Start_date, ev.End_date, ev.World_id)
 		if err != nil {
 			return fmt.Errorf("error inserting event: %v", err)
 		}
@@ -66,10 +66,10 @@ func (ev *Event) Delete() error {
 func (ev *Event) Update() error {
 	query := `
 	UPDATE events 
-	SET name = $1, start_date = $2, end_date = $3, root_papper_id = $4
+	SET name = $1, start_date = $2, end_date = $3, world_id = $4
 	WHERE id = $5
 	`
-	_, err := db.DB.Exec(query, ev.Name, ev.Start_date, ev.End_date, ev.Root_papper_id, ev.Id)
+	_, err := db.DB.Exec(query, ev.Name, ev.Start_date, ev.End_date, ev.World_id, ev.Id)
 	if err != nil {
 		return fmt.Errorf("error updating event: %v", err)
 	}

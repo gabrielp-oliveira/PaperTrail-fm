@@ -10,14 +10,14 @@ func RegisterRoutes(server *gin.Engine) {
 	authenticated := server.Group("/")
 	authenticated.Use(middlewares.Authenticate)
 
-	authenticated.POST("/createRootPapper", CreateRootPapper)
-	authenticated.GET("/getRootPapperList", GetRootPapperList)
+	authenticated.POST("/createWorld", CreateWorld)
+	authenticated.GET("/getWorldsList", GetWorldsList)
 
-	authenticatedRootPapper := authenticated.Group("/").Use(middlewares.RootPapperInfo)
-	authenticatedRootPapper.POST("/createPapper", CreatePapper)
-	authenticatedRootPapper.GET("/getPapperList", getPapperList)
+	authenticatedWorlds := authenticated.Group("/").Use(middlewares.WorldInfo)
+	authenticatedWorlds.POST("/createPapper", CreatePapper)
+	authenticatedWorlds.GET("/getPapperList", getPapperList)
 
-	authenticatedRootPapper.GET("/getRootData", GetRootData)
+	authenticatedWorlds.GET("/getRootData", GetRootData)
 
 	authEvent := authenticated.Group("/").Use(middlewares.EventHandler)
 	authEvent.POST("/insertEvent", InsertEvent)

@@ -9,14 +9,14 @@ import (
 )
 
 type Chapter struct {
-	Id           string         `json:"id"`
-	RootPapperID string         `json:"root_papper_id"`
-	Name         string         `json:"name"`
-	Description  string         `json:"description"`
-	CreatedAt    time.Time      `json:"created_at"`
-	PapperID     string         `json:"papper_id"`
-	EventID      sql.NullString `json:"event_id"`
-	TimelineID   sql.NullString `json:"timeline_id"`
+	Id          string         `json:"id"`
+	WorldsID    string         `json:"world_id"`
+	Name        string         `json:"name"`
+	Description string         `json:"description"`
+	CreatedAt   time.Time      `json:"created_at"`
+	PapperID    string         `json:"papper_id"`
+	EventID     sql.NullString `json:"event_id"`
+	TimelineID  sql.NullString `json:"timeline_id"`
 }
 
 func (c *Chapter) Save() error {
@@ -34,9 +34,9 @@ func (c *Chapter) Save() error {
 	if err == sql.ErrNoRows {
 		// Se não há linhas (capítulo não existe), insere um novo registro
 		insertQuery := `
-		INSERT INTO chapters(id, name, description, created_at, papper_id, root_papper_id, event_id, timeline_id) 
+		INSERT INTO chapters(id, name, description, created_at, papper_id, world_id, event_id, timeline_id) 
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
-		_, err := db.DB.Exec(insertQuery, c.Id, c.Name, c.Description, c.CreatedAt, c.PapperID, c.RootPapperID, c.EventID, c.TimelineID)
+		_, err := db.DB.Exec(insertQuery, c.Id, c.Name, c.Description, c.CreatedAt, c.PapperID, c.WorldsID, c.EventID, c.TimelineID)
 		if err != nil {
 			return fmt.Errorf("error inserting chapter: %v", err)
 		}
@@ -50,11 +50,11 @@ func (c *Chapter) Save() error {
 }
 
 func GetChapterByID(id string) (*Chapter, error) {
-	query := "SELECT id, name, description, created_at, papper_id, root_papper_id, event_id, timeline_id FROM chapters WHERE id = $1"
+	query := "SELECT id, name, description, created_at, papper_id, world_id, event_id, timeline_id FROM chapters WHERE id = $1"
 	row := db.DB.QueryRow(query, id)
 
 	var chapter Chapter
-	err := row.Scan(&chapter.Id, &chapter.Name, &chapter.Description, &chapter.CreatedAt, &chapter.PapperID, &chapter.RootPapperID, &chapter.EventID, &chapter.TimelineID)
+	err := row.Scan(&chapter.Id, &chapter.Name, &chapter.Description, &chapter.CreatedAt, &chapter.PapperID, &chapter.WorldsID, &chapter.EventID, &chapter.TimelineID)
 	if err != nil {
 		return nil, err
 	}

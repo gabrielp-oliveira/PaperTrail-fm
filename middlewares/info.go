@@ -11,7 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func RootPapperInfo(C *gin.Context) {
+func WorldInfo(C *gin.Context) {
 	userInfo, err := utils.GetUserInfo(C)
 	if err == sql.ErrNoRows {
 		C.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": err.Error()})
@@ -19,31 +19,31 @@ func RootPapperInfo(C *gin.Context) {
 	}
 	var papper models.Papper
 	C.ShouldBindJSON(&papper)
-	rootPapper, err := RootPapper(userInfo.ID, papper.Root_papper_id)
+	world, err := World(userInfo.ID, papper.World_id)
 
 	if err == sql.ErrNoRows {
-		C.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "root folder not found in google drive. " + err.Error()})
+		C.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "world  not found in google drive. " + err.Error()})
 		return
 	}
-	C.Set("rootPapper", rootPapper)
+	C.Set("world", world)
 	C.Set("papper", papper)
 
 	C.Next()
 }
-func RootPapper(userId, rootPapperId string) (models.RootPapper, error) {
+func World(userId, worldsId string) (models.Worlds, error) {
 
-	query := "SELECT name, id FROM rootpappers WHERE user_id = $1 and id = $2"
-	var rootPapper models.RootPapper
-	row := db.DB.QueryRow(query, userId, rootPapperId)
-	err := row.Scan(&rootPapper.Name, &rootPapper.Id)
+	query := "SELECT name, id FROM worlds WHERE user_id = $1 and id = $2"
+	var worlds models.Worlds
+	row := db.DB.QueryRow(query, userId, worldsId)
+	err := row.Scan(&worlds.Name, &worlds.Id)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return rootPapper, err
+			return worlds, err
 		}
-		return rootPapper, err
+		return worlds, err
 	}
 
-	return rootPapper, nil
+	return worlds, nil
 }
 
 func PapperInfo(C *gin.Context) {
@@ -55,19 +55,19 @@ func PapperInfo(C *gin.Context) {
 	var Chapter models.Chapter
 	C.ShouldBindJSON(&Chapter)
 
-	rootPapperInfo, err := RootPapper(userInfo.ID, Chapter.RootPapperID)
+	worldInfo, err := World(userInfo.ID, Chapter.WorldsID)
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting Root papper info. " + err.Error()})
 		return
 	}
 
-	query := "SELECT name, id, description, path, created_at, root_papper_id FROM pappers WHERE root_papper_id = $1 and id = $2"
-	row := db.DB.QueryRow(query, rootPapperInfo.Id, Chapter.PapperID)
+	query := "SELECT name, id, description, path, created_at, world_id FROM pappers WHERE world_id = $1 and id = $2"
+	row := db.DB.QueryRow(query, worldInfo.Id, Chapter.PapperID)
 	var papper models.Papper
-	err = row.Scan(&papper.Name, &papper.ID, &papper.Description, &papper.Path, &papper.Created_at, &papper.Root_papper_id)
+	err = row.Scan(&papper.Name, &papper.ID, &papper.Description, &papper.Path, &papper.Created_at, &papper.World_id)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			C.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "root folder not found in google drive. " + err.Error()})
+			C.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "world  not found in google drive. " + err.Error()})
 			return
 		}
 
@@ -89,8 +89,8 @@ func EventHandler(C *gin.Context) {
 	}
 	var event models.Event
 	C.ShouldBindJSON(&event)
-	rootPapper, err := RootPapper(userInfo.ID, event.Root_papper_id)
-	C.Set("rootPapper", rootPapper)
+	world, err := World(userInfo.ID, event.World_id)
+	C.Set("world", world)
 
 	C.Set("event", event)
 
@@ -104,13 +104,13 @@ func ConnectionHandler(C *gin.Context) {
 	}
 	type Cnn struct {
 		models.Connection
-		RootPapperId string
+		WorldsId string
 	}
 	var connection Cnn
 	C.ShouldBindJSON(&connection)
 
-	rootPapper, err := RootPapper(userInfo.ID, connection.RootPapperId)
-	C.Set("rootPapper", rootPapper)
+	world, err := World(userInfo.ID, connection.WorldsId)
+	C.Set("world", world)
 	C.Set("connection", connection)
 
 	C.Next()

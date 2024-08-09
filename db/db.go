@@ -40,7 +40,7 @@ func createTables(db *sql.DB) {
 
 	createTables := []string{
 
-		`CREATE TABLE IF NOT EXISTS rootpappers (
+		`CREATE TABLE IF NOT EXISTS worlds (
 			id TEXT PRIMARY KEY,
 			name TEXT NOT NULL,
 			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -54,15 +54,15 @@ func createTables(db *sql.DB) {
 			description TEXT NOT NULL,
 			path TEXT NOT NULL,
 			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			root_papper_id TEXT,
-			FOREIGN KEY(root_papper_id) REFERENCES rootpappers(id)
+			world_id TEXT,
+			FOREIGN KEY(world_id) REFERENCES worlds(id)
 		);`,
 
 		`CREATE TABLE IF NOT EXISTS timelines (
 			id TEXT PRIMARY KEY,
-			root_papper_id TEXT NOT NULL,
+			world_id TEXT NOT NULL,
 			date DATE NOT NULL,
-			FOREIGN KEY(root_papper_id) REFERENCES rootpappers(id)
+			FOREIGN KEY(world_id) REFERENCES worlds(id)
 		);`,
 
 		`CREATE TABLE IF NOT EXISTS events (
@@ -70,8 +70,8 @@ func createTables(db *sql.DB) {
 			name TEXT NOT NULL,
 			start_date DATE NOT NULL,
 			end_date DATE NOT NULL,
-			root_papper_id TEXT,
-			FOREIGN KEY(root_papper_id) REFERENCES rootpappers(id)
+			world_id TEXT,
+			FOREIGN KEY(world_id) REFERENCES worlds(id)
 		);`,
 
 		`CREATE TABLE IF NOT EXISTS chapters (
@@ -80,11 +80,11 @@ func createTables(db *sql.DB) {
 			description TEXT NOT NULL,
 			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			papper_id TEXT,
-			root_papper_id TEXT,
+			world_id TEXT,
 			time_line_id TEXT,
 			event_id TEXT,
 			FOREIGN KEY(papper_id) REFERENCES pappers(id),
-			FOREIGN KEY(root_papper_id) REFERENCES rootpappers(id),
+			FOREIGN KEY(world_id) REFERENCES worlds(id),
 			FOREIGN KEY(time_line_id) REFERENCES timelines(id),
 			FOREIGN KEY(event_id) REFERENCES events(id)
 		);`,

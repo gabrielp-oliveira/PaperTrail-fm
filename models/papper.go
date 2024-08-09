@@ -10,20 +10,20 @@ import (
 )
 
 type Papper struct {
-	ID             string    `json:"id"`
-	Name           string    `json:"name"`
-	Description    string    `json:"description"`
-	Path           string    `json:"path"`
-	Created_at     time.Time `json:"created_at"`
-	Root_papper_id string    `json:"root_papper_id"`
+	ID          string    `json:"id"`
+	Name        string    `json:"name"`
+	Description string    `json:"description"`
+	Path        string    `json:"path"`
+	Created_at  time.Time `json:"created_at"`
+	World_id    string    `json:"world_id"`
 }
 
 func (e *Papper) Save() error {
 	var papperId int
 
 	// Verifica se o papper já existe no banco de dados
-	query := `SELECT id FROM pappers WHERE name = $1 AND root_papper_id = $2`
-	err := db.DB.QueryRow(query, e.Name, e.Root_papper_id).Scan(&papperId)
+	query := `SELECT id FROM pappers WHERE name = $1 AND world_id = $2`
+	err := db.DB.QueryRow(query, e.Name, e.World_id).Scan(&papperId)
 
 	if err != nil && err != sql.ErrNoRows {
 		// Se ocorrer um erro diferente de "sem linhas encontradas", retorna o erro
@@ -33,9 +33,9 @@ func (e *Papper) Save() error {
 	if err == sql.ErrNoRows {
 		// Se não há linhas (papper não existe), insere um novo registro
 		insertQuery := `
-		INSERT INTO pappers(id, name, description, path, created_at, root_papper_id) 
+		INSERT INTO pappers(id, name, description, path, created_at, world_id) 
 		VALUES ($1, $2, $3, $4, $5, $6)`
-		_, err := db.DB.Exec(insertQuery, e.ID, e.Name, e.Description, e.Path, e.Created_at, e.Root_papper_id)
+		_, err := db.DB.Exec(insertQuery, e.ID, e.Name, e.Description, e.Path, e.Created_at, e.World_id)
 		if err != nil {
 			return fmt.Errorf("error inserting papper: %v", err)
 		}
@@ -60,7 +60,7 @@ func GetAllPappers() ([]Papper, error) {
 
 	for rows.Next() {
 		var papper Papper
-		err := rows.Scan(&papper.ID, &papper.Name, &papper.Description, &papper.Path, &papper.Created_at, &papper.Root_papper_id)
+		err := rows.Scan(&papper.ID, &papper.Name, &papper.Description, &papper.Path, &papper.Created_at, &papper.World_id)
 
 		if err != nil {
 			return nil, err
@@ -77,7 +77,7 @@ func GetPapperByID(id int64) (*Papper, error) {
 	row := db.DB.QueryRow(query, id)
 
 	var papper Papper
-	err := row.Scan(&papper.ID, &papper.Name, &papper.Description, &papper.Path, &papper.Created_at, &papper.Root_papper_id)
+	err := row.Scan(&papper.ID, &papper.Name, &papper.Description, &papper.Path, &papper.Created_at, &papper.World_id)
 	if err != nil {
 		return nil, err
 	}

@@ -44,17 +44,17 @@ func (u *User) UpdateBaseFolder() error {
 	return nil
 }
 
-func (u *User) GetRootPappers() ([]RootPapper, error) {
-	query := "SELECT id, name FROM rootpappers WHERE user_id = $1"
+func (u *User) GetWorldss() ([]Worlds, error) {
+	query := "SELECT id, name FROM worlds WHERE user_id = $1"
 	rows, err := db.DB.Query(query, u.ID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var list []RootPapper
+	var list []Worlds
 	for rows.Next() {
-		var rp RootPapper
+		var rp Worlds
 		if err := rows.Scan(&rp.Id, &rp.Name); err != nil {
 			return nil, err
 		}

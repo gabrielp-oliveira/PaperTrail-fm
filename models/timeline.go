@@ -9,9 +9,9 @@ import (
 )
 
 type Timeline struct {
-	Id           string    `json:"id"`
-	RootPapperID string    `json:"root_papper_id"`
-	Date         time.Time `json:"date"`
+	Id       string    `json:"id"`
+	WorldsID string    `json:"world_id"`
+	Date     time.Time `json:"date"`
 }
 
 func (t *Timeline) Save() error {
@@ -29,9 +29,9 @@ func (t *Timeline) Save() error {
 	if err == sql.ErrNoRows {
 		// Se não há linhas (timeline não existe), insere um novo registro
 		insertQuery := `
-		INSERT INTO timelines(id, root_papper_id, date) 
+		INSERT INTO timelines(id, world_id, date) 
 		VALUES ($1, $2, $3)`
-		_, err := db.DB.Exec(insertQuery, t.Id, t.RootPapperID, t.Date)
+		_, err := db.DB.Exec(insertQuery, t.Id, t.WorldsID, t.Date)
 		if err != nil {
 			return fmt.Errorf("error inserting timeline: %v", err)
 		}
@@ -45,11 +45,11 @@ func (t *Timeline) Save() error {
 }
 
 func GetTimelineByID(id string) (*Timeline, error) {
-	query := "SELECT id, root_papper_id, date FROM timelines WHERE id = $1"
+	query := "SELECT id, world_id, date FROM timelines WHERE id = $1"
 	row := db.DB.QueryRow(query, id)
 
 	var timeline Timeline
-	err := row.Scan(&timeline.Id, &timeline.RootPapperID, &timeline.Date)
+	err := row.Scan(&timeline.Id, &timeline.WorldsID, &timeline.Date)
 	if err != nil {
 		return nil, err
 	}
