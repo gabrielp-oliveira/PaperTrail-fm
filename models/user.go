@@ -9,6 +9,7 @@ import (
 
 	"PaperTrail-fm.com/db"
 	"PaperTrail-fm.com/googleClient"
+	"github.com/golang-jwt/jwt"
 	"golang.org/x/oauth2"
 )
 
@@ -23,7 +24,7 @@ type User struct {
 	Base_folder  string    `json:"base_folder"`
 }
 
-var googleOauthConfig = googleClient.StartCredentials()
+const secretKey = "supersecret"
 
 func (u *User) UpdateToken() error {
 	updateQuery := "UPDATE users SET accessToken = $1, refresh_token = $2, token_expiry = $3 WHERE email = $4"
@@ -81,10 +82,13 @@ func (u *User) updateDatabase() error {
 }
 
 func (u *User) UpdateOAuthToken() (*oauth2.Token, error) {
+	var googleOauthConfig = googleClient.StartCredentials()
+	tokenGenerated, err := GenerateToken(u.Email, u.ID)
+
 	config := googleOauthConfig
 
 	token := &oauth2.Token{
-		AccessToken:  u.AccessToken,
+		AccessToken:  tokenGenerated,
 		RefreshToken: u.RefreshToken,
 		Expiry:       u.TokenExpiry,
 	}
@@ -134,4 +138,45 @@ func (u *User) GetClient(config *oauth2.Config) (*http.Client, error) {
 	}
 	client := config.Client(context.Background(), &token)
 	return client, nil
+}
+
+func GenerateToken(email string, userId string) (string, error) {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"email":  email,
+		"userId": userId,
+		"exp":    time.Now().Add(time.Hour * 4).Unix(),
+	})
+
+	return token.SignedString([]byte(secretKey))
+}
+
+func VerifyToken(token string) (string, error) {
+	parsedToken, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
+		_, ok := token.Method.(*jwt.SigningMethodHMAC)
+		if !ok {
+			return nil, errors.New("unexpected signing method /n")
+		}
+		return []byte(secretKey), nil
+	})
+
+	if err != nil {
+		fmt.Println("Could not parse token")
+		return "", errors.New("Could not parse token. " + err.Error())
+	}
+
+	if !parsedToken.Valid {
+		return "", errors.New("invalid token! /n")
+	}
+
+	claims, ok := parsedToken.Claims.(jwt.MapClaims)
+	if !ok {
+		return "", errors.New("invalid token claims./n")
+	}
+
+	email, ok := claims["email"].(string)
+	if !ok {
+		return "", errors.New("Invalid userId format in token claims.")
+	}
+
+	return email, nil
 }

@@ -34,11 +34,9 @@ func Authenticate(C *gin.Context) {
 
 	if err != nil {
 		if err == sql.ErrNoRows {
-			// Tratar caso não haja registros correspondentes
 			C.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "Not authorized."})
 			return
 		}
-		// Outros erros podem ser tratados aqui
 
 		C.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "Not authorized."})
 		return
