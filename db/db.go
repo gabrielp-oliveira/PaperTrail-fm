@@ -61,6 +61,7 @@ func createTables(db *sql.DB) {
 		`CREATE TABLE IF NOT EXISTS timelines (
 			id TEXT PRIMARY KEY,
 			world_id TEXT NOT NULL,
+			name TEXT,
 			date DATE NOT NULL,
 			FOREIGN KEY(world_id) REFERENCES worlds(id)
 		);`,
@@ -81,12 +82,12 @@ func createTables(db *sql.DB) {
 			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			papper_id TEXT,
 			world_id TEXT,
-			time_line_id TEXT,
-			event_id TEXT,
-			FOREIGN KEY(papper_id) REFERENCES pappers(id),
-			FOREIGN KEY(world_id) REFERENCES worlds(id),
-			FOREIGN KEY(time_line_id) REFERENCES timelines(id),
-			FOREIGN KEY(event_id) REFERENCES events(id)
+			timeline_id TEXT, -- Permitir nulo por padrão
+			event_id TEXT, -- Permitir nulo por padrão
+			FOREIGN KEY (papper_id) REFERENCES pappers(id),
+			FOREIGN KEY (world_id) REFERENCES worlds(id),
+			FOREIGN KEY (timeline_id) REFERENCES timelines(id) ON DELETE SET NULL,
+			FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE SET NULL
 		);`,
 
 		`CREATE TABLE IF NOT EXISTS connections (

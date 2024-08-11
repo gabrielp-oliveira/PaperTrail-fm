@@ -7,19 +7,30 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func GetWorldsInfo(context *gin.Context) (models.Worlds, error) {
-
+func GetWorldsInfo(context *gin.Context) (models.World, error) {
 	worldsI, exists := context.Get("world")
+	queryWorldsI := context.Query("id")
+
+	var worldId string
+
 	if !exists {
-		return models.Worlds{}, errors.New("unable to retrieve worlds information")
+		if queryWorldsI == "" {
+			return models.World{}, errors.New("unable to retrieve worlds information")
+		} else {
+			worldId = queryWorldsI
+		}
+	} else {
+		// Considerando que worldsI é um tipo que possui um campo Id
+		if world, ok := worldsI.(models.World); ok {
+			worldId = world.Id
+		} else {
+			return models.World{}, errors.New("invalid world information")
+		}
 	}
 
-	worldsInfo, ok := worldsI.(models.Worlds)
-	if !ok {
-		return models.Worlds{}, errors.New("unable to retrieve worlds information")
-	}
-
-	return worldsInfo, nil
+	var worldInfo models.World
+	worldInfo.Id = worldId
+	return worldInfo, nil
 }
 func GetConnectionInfo(context *gin.Context) (models.Connection, error) {
 

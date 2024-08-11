@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"database/sql"
 	"log"
 	"net/http"
 	"os"
@@ -50,7 +51,7 @@ func CreateWorld(C *gin.Context) {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting user info. " + err.Error()})
 		return
 	}
-	var rp models.Worlds
+	var rp models.World
 	C.ShouldBindJSON(&rp)
 
 	if rp.Name == "" {
@@ -131,6 +132,7 @@ func CreatePapper(C *gin.Context) {
 	papper.World_id = worldsInfo.Id
 	papper.Path = worldsInfo.Name + "/" + papper.Name
 	papper.ID = folder.Id
+	papper.Created_at = time.Now()
 	err = papper.Save()
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -142,13 +144,13 @@ func CreatePapper(C *gin.Context) {
 		return
 	}
 
-	repoPath := "tempRepositories/" + papper.ID + "/" + "chapter1"
-	err = os.MkdirAll(repoPath, os.ModePerm)
-	if err != nil {
-		gitConfig.RemoveLocalRepo(repoPath)
-		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error " + err.Error()})
-		return
-	}
+	// repoPath := "tempRepositories/" + papper.ID + "/" + "chapter1"
+	// err = os.MkdirAll(repoPath, os.ModePerm)
+	// if err != nil {
+	// 	gitConfig.RemoveLocalRepo(repoPath)
+	// 	C.JSON(http.StatusInternalServerError, gin.H{"error": "Error " + err.Error()})
+	// 	return
+	// }
 	chapterFolder, err := googleClient.CreateFolder(driveSrv, "Chapter 1", papper.ID)
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error " + err.Error()})
@@ -165,8 +167,16 @@ func CreatePapper(C *gin.Context) {
 	chapter.Id = chapterId
 	chapter.Name = "chapter 1"
 	chapter.PapperID = papper.ID
+	chapter.WorldsID = worldsInfo.Id
 	chapter.Description = "First chapter from " + papper.Name
 	chapter.CreatedAt = time.Now()
+
+	eventID := sql.NullString{String: ""}
+	timelineID := sql.NullString{String: ""}
+
+	chapter.TimelineID = timelineID
+	chapter.EventID = eventID
+
 	err = chapter.Save()
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error " + err.Error()})
@@ -351,13 +361,13 @@ func GetChapter(C *gin.Context) {
 	C.JSON(http.StatusOK, revisions)
 }
 
-func GetRootData(C *gin.Context) {
+func GetWorldData(C *gin.Context) {
 	worlds, err := utils.GetWorldsInfo(C)
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	environment, err := worlds.GetRootData()
+	environment, err := worlds.GetWorldData()
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -384,7 +394,7 @@ func InsertEvent(C *gin.Context) {
 	event.Id = id
 	event.Save()
 
-	environment, err := worlds.GetRootData()
+	environment, err := worlds.GetWorldData()
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -414,7 +424,7 @@ func RemoveEvent(C *gin.Context) {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	environment, err := worlds.GetRootData()
+	environment, err := worlds.GetWorldData()
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -440,7 +450,7 @@ func UpdateEvent(C *gin.Context) {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	environment, err := worlds.GetRootData()
+	environment, err := worlds.GetWorldData()
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -466,7 +476,7 @@ func InsertConnection(C *gin.Context) {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	environment, err := worlds.GetRootData()
+	environment, err := worlds.GetWorldData()
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -494,7 +504,7 @@ func RemoveConnection(C *gin.Context) {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	environment, err := worlds.GetRootData()
+	environment, err := worlds.GetWorldData()
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

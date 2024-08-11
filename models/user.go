@@ -44,7 +44,7 @@ func (u *User) UpdateBaseFolder() error {
 	return nil
 }
 
-func (u *User) GetWorldss() ([]Worlds, error) {
+func (u *User) GetWorldss() ([]World, error) {
 	query := "SELECT id, name FROM worlds WHERE user_id = $1"
 	rows, err := db.DB.Query(query, u.ID)
 	if err != nil {
@@ -52,9 +52,9 @@ func (u *User) GetWorldss() ([]Worlds, error) {
 	}
 	defer rows.Close()
 
-	var list []Worlds
+	var list []World
 	for rows.Next() {
-		var rp Worlds
+		var rp World
 		if err := rows.Scan(&rp.Id, &rp.Name); err != nil {
 			return nil, err
 		}

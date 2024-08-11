@@ -8,7 +8,7 @@ import (
 	"PaperTrail-fm.com/db"
 )
 
-type Worlds struct {
+type World struct {
 	Id        string    `json:"id"`
 	Name      string    `json:"name"`
 	CreatedAt time.Time `json:"created_at"`
@@ -16,15 +16,16 @@ type Worlds struct {
 }
 
 type Env struct {
-	Worlds
+	World
 	Chapters    []Chapter    `json:"chapters"`
 	Events      []Event      `json:"events"`
 	Connections []Connection `json:"connections"`
 	Timelines   []Timeline   `json:"timelines"`
+	Pappers     []Papper
 }
 
 // Salva o Worlds no banco de dados
-func (rp *Worlds) Save() error {
+func (rp *World) Save() error {
 	var rpId string
 
 	query := `SELECT id FROM worlds WHERE id = $1`
@@ -52,7 +53,7 @@ func (rp *Worlds) Save() error {
 }
 
 // Obtém a lista de pappers associados ao Worlds
-func (rp *Worlds) GetPapperList() ([]Papper, error) {
+func (rp *World) GetPapperList() ([]Papper, error) {
 	query := "SELECT id, name, description, created_at FROM pappers WHERE world_id = $1"
 	rows, err := db.DB.Query(query, rp.Id)
 	if err != nil {
@@ -75,11 +76,12 @@ func (rp *Worlds) GetPapperList() ([]Papper, error) {
 }
 
 // Obtém capítulos, conexões, eventos e timelines associados ao Worlds
-func (rp *Worlds) GetRootData() (Env, error) {
+func (rp *World) GetWorldData() (Env, error) {
 	chapters := []Chapter{}
 	events := []Event{}
 	connections := []Connection{}
 	timelines := []Timeline{}
+	pappers := []Papper{}
 	env := Env{}
 
 	// Consultar eventos
@@ -162,13 +164,32 @@ func (rp *Worlds) GetRootData() (Env, error) {
 		}
 		timelines = append(timelines, timeline)
 	}
+	// Consultar timelines
+	papperQuery := `
+		SELECT id, name, description, created_at
+		FROM pappers
+		WHERE world_id = $1
+	`
+	rows, err = db.DB.Query(papperQuery, rp.Id)
+	if err != nil {
+		return env, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var papper Papper
+		if err := rows.Scan(&papper.ID, &papper.Name, &papper.Description, &papper.Created_at); err != nil {
+			return env, err
+		}
+		pappers = append(pappers, papper)
+	}
 
 	// Preencher o objeto Env
-	env.Worlds = *rp
+	env.World = *rp
 	env.Chapters = chapters
 	env.Connections = connections
 	env.Events = events
 	env.Timelines = timelines
-
+	env.Pappers = pappers
 	return env, nil
 }

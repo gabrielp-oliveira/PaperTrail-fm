@@ -17,8 +17,15 @@ func WorldInfo(C *gin.Context) {
 		C.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": err.Error()})
 		return
 	}
+
+	world_id := C.Query("world_id")
 	var papper models.Papper
-	C.ShouldBindJSON(&papper)
+
+	if world_id != "" {
+		papper.World_id = world_id
+	} else {
+		C.ShouldBindJSON(&papper)
+	}
 	world, err := World(userInfo.ID, papper.World_id)
 
 	if err == sql.ErrNoRows {
@@ -30,10 +37,10 @@ func WorldInfo(C *gin.Context) {
 
 	C.Next()
 }
-func World(userId, worldsId string) (models.Worlds, error) {
+func World(userId, worldsId string) (models.World, error) {
 
 	query := "SELECT name, id FROM worlds WHERE user_id = $1 and id = $2"
-	var worlds models.Worlds
+	var worlds models.World
 	row := db.DB.QueryRow(query, userId, worldsId)
 	err := row.Scan(&worlds.Name, &worlds.Id)
 	if err != nil {
