@@ -193,7 +193,7 @@ func CreateChapter(service *drive.Service, name, papperId, userEmail string) (st
 	}
 	createdFolder, err := service.Files.Create(folder).Do()
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("error creating folder: %w", err)
 	}
 	fileMetadata := &drive.File{
 		Name:     name,
@@ -201,7 +201,11 @@ func CreateChapter(service *drive.Service, name, papperId, userEmail string) (st
 		MimeType: "application/vnd.google-apps.document",
 	}
 	doc, err := service.Files.Create(fileMetadata).Do()
+	if err != nil {
+		return "", fmt.Errorf("error creating document: %w", err)
+	}
 
+	// Define permissões para o usuário no documento criado
 	permission := &drive.Permission{
 		Type:         "user",
 		Role:         "writer",
@@ -209,6 +213,10 @@ func CreateChapter(service *drive.Service, name, papperId, userEmail string) (st
 	}
 
 	_, err = service.Permissions.Create(doc.Id, permission).Do()
+	if err != nil {
+		return "", fmt.Errorf("error setting document permissions: %w", err)
+	}
 
+	// Retorna o ID do documento criado
 	return doc.Id, nil
 }

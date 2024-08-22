@@ -84,7 +84,13 @@ func (rp *World) GetWorldData() (Env, error) {
 	pappers := []Papper{}
 	env := Env{}
 
-	// Consultar eventos
+	query := `SELECT name, created_at FROM worlds WHERE id = $1`
+	err := db.DB.QueryRow(query, rp.Id).Scan(&rp.Name, &rp.CreatedAt)
+
+	if err != nil && err != sql.ErrNoRows {
+		return env, fmt.Errorf("error getting world info: %v", err)
+	}
+
 	eventsQuery := `
 		SELECT id, name, start_date, end_date, world_id
 		FROM events

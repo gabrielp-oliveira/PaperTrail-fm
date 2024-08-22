@@ -16,6 +16,7 @@ type Papper struct {
 	Path        string    `json:"path"`
 	Created_at  time.Time `json:"created_at"`
 	World_id    string    `json:"world_id"`
+	Order       *int      `json:"order,omitempty"` // Use ponteiro para lidar com valores nulos
 }
 
 func (e *Papper) Save() error {
@@ -31,11 +32,22 @@ func (e *Papper) Save() error {
 	}
 
 	if err == sql.ErrNoRows {
-		// Se não há linhas (papper não existe), insere um novo registro
+		var maxOrder *int
+		orderQuery := `SELECT MAX("order") FROM pappers WHERE world_id = $1`
+		err := db.DB.QueryRow(orderQuery, e.World_id).Scan(&maxOrder)
+		if err != nil {
+			return fmt.Errorf("error getting max order: %v", err)
+		}
+
+		newOrder := 1
+		if maxOrder != nil {
+			newOrder = *maxOrder + 1
+		}
+
 		insertQuery := `
-		INSERT INTO pappers(id, name, description, path, created_at, world_id) 
-		VALUES ($1, $2, $3, $4, $5, $6)`
-		_, err := db.DB.Exec(insertQuery, e.ID, e.Name, e.Description, e.Path, e.Created_at, e.World_id)
+		INSERT INTO pappers(id, name, description, path, created_at, world_id, "order") 
+		VALUES ($1, $2, $3, $4, $5, $6, $7)`
+		_, err = db.DB.Exec(insertQuery, e.ID, e.Name, e.Description, e.Path, e.Created_at, e.World_id, newOrder)
 		if err != nil {
 			return fmt.Errorf("error inserting papper: %v", err)
 		}
@@ -88,8 +100,8 @@ func GetPapperByID(id int64) (*Papper, error) {
 func (papper *Papper) Update() error {
 	query := `
 	UPDATE pappers
-	SET name = ?, description = ?, path = ?, created_at = ?
-	WHERE id = ?
+	SET name = $1, description = $2, "order" = $3
+	WHERE id = $4
 	`
 	stmt, err := db.DB.Prepare(query)
 
@@ -99,7 +111,7 @@ func (papper *Papper) Update() error {
 
 	defer stmt.Close()
 
-	_, err = stmt.Exec(papper.Name, papper.Description, papper.Path, papper.Created_at, papper.ID)
+	_, err = stmt.Exec(papper.Name, papper.Description, papper.Order, papper.ID)
 	return err
 }
 
@@ -130,7 +142,7 @@ type revision struct {
 }
 
 func (papper *Papper) GetChapterList(driver *drive.Service, userAccessToken string) ([]chapterWithRevisions, error) {
-	query := "SELECT id, name, description, created_at, Papper_id FROM chapters WHERE papper_id = $1"
+	query := `SELECT id, name, description, created_at, Papper_id, "order" FROM chapters WHERE papper_id = $1`
 	rows, err := db.DB.Query(query, papper.ID)
 	if err != nil {
 		return nil, err
@@ -140,7 +152,7 @@ func (papper *Papper) GetChapterList(driver *drive.Service, userAccessToken stri
 	var list []chapterWithRevisions
 	for rows.Next() {
 		var chapter chapterWithRevisions
-		if err := rows.Scan(&chapter.Id, &chapter.Name, &chapter.Description, &chapter.CreatedAt, &chapter.PapperID); err != nil {
+		if err := rows.Scan(&chapter.Id, &chapter.Name, &chapter.Description, &chapter.CreatedAt, &chapter.PapperID, &chapter.Order); err != nil {
 			return nil, err
 		}
 		revisions, _ := driver.Revisions.List(chapter.Id).Do()
@@ -164,4 +176,18 @@ func (papper *Papper) GetChapterList(driver *drive.Service, userAccessToken stri
 
 func GenerateSecureIframeURL(fileID, token string) string {
 	return fmt.Sprintf("https://docs.google.com/document/d/%s/edit?access_token=%s", fileID, token)
+}
+
+func (papper *Papper) Get() error {
+	query := `SELECT id, name, description, created_at, world_id, "order" FROM pappers WHERE id = $1`
+	row := db.DB.QueryRow(query, papper.ID)
+
+	err := row.Scan(&papper.ID, &papper.Name, &papper.Description, &papper.Created_at, &papper.World_id, &papper.Order)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return fmt.Errorf("no papper found with id %s", papper.ID)
+		}
+		return fmt.Errorf("error retrieving papper: %v", err)
+	}
+	return nil
 }

@@ -16,6 +16,7 @@ func RegisterRoutes(server *gin.Engine) {
 
 	authenticatedWorlds := authenticated.Group("/").Use(middlewares.WorldInfo)
 	authenticatedWorlds.POST("/createPapper", CreatePapper)
+	authenticatedWorlds.PUT("/updatePapper", UpdatePapper)
 	authenticatedWorlds.GET("/getPapperList", getPapperList)
 
 	// authenticatedWorlds.GET("/world", GetWorldData)
@@ -28,10 +29,15 @@ func RegisterRoutes(server *gin.Engine) {
 	authConnection := authenticated.Group("/").Use(middlewares.ConnectionHandler)
 	authConnection.POST("/insertConnection", InsertConnection)
 	authConnection.POST("/removeConnection", RemoveConnection)
+	// authenticatedPapper.GET("/papper", GetPapper)
 
 	authenticatedPapper := authenticated.Group("/").Use(middlewares.PapperInfo)
 	authenticatedPapper.POST("/createChapter", CreateChapter)
+	authenticatedPapper.PUT("/updateChapter", UpdateChapter)
 	authenticatedPapper.GET("/getChapterList", GetChapterList)
-	authenticatedPapper.GET("/getChapter", GetChapter)
 
+	authenticated.GET("/chapterUrl", GetChapterUrl)
+	authenticated.GET("/chapter", GetChapter)
+	authenticated.GET("/papper", GetPapper)
+	// use the right middleware later
 }
