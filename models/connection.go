@@ -12,6 +12,7 @@ type Connection struct {
 	Id              string `json:"id"`
 	SourceChapterID string `json:"sourceChapterID"`
 	TargetChapterID string `json:"targetChapterID"`
+	World_id        string `json:"world_id"`
 }
 
 func (cnn *Connection) Save() error {

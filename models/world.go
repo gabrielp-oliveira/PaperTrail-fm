@@ -21,7 +21,8 @@ type Env struct {
 	Events      []Event      `json:"events"`
 	Connections []Connection `json:"connections"`
 	Timelines   []Timeline   `json:"timelines"`
-	Pappers     []Papper
+	Pappers     []Papper     `json:"pappers"`
+	StoryLines  []StoryLine  `json:"storyLines"`
 }
 
 // Salva o Worlds no banco de dados
@@ -81,6 +82,7 @@ func (rp *World) GetWorldData() (Env, error) {
 	events := []Event{}
 	connections := []Connection{}
 	timelines := []Timeline{}
+	storyLines := []StoryLine{}
 	pappers := []Papper{}
 	env := Env{}
 
@@ -153,7 +155,7 @@ func (rp *World) GetWorldData() (Env, error) {
 
 	// Consultar timelines
 	timelinesQuery := `
-		SELECT id, name, date, world_id
+		SELECT id, name, world_id, range, "order", description
 		FROM timelines
 		WHERE world_id = $1
 	`
@@ -165,10 +167,29 @@ func (rp *World) GetWorldData() (Env, error) {
 
 	for rows.Next() {
 		var timeline Timeline
-		if err := rows.Scan(&timeline.Id, &timeline.Date, &timeline.WorldsID); err != nil {
+		if err := rows.Scan(&timeline.Id, &timeline.Name, &timeline.WorldsID, &timeline.Range, &timeline.Order, &timeline.Description); err != nil {
 			return env, err
 		}
 		timelines = append(timelines, timeline)
+	}
+	// Consultar storyLines
+	storylinesQuery := `
+		SELECT id, name, "order", description
+		FROM timelines
+		WHERE world_id = $1
+	`
+	rows, err = db.DB.Query(storylinesQuery, rp.Id)
+	if err != nil {
+		return env, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var storyLine StoryLine
+		if err := rows.Scan(&storyLine.Id, &storyLine.Name, &storyLine.Order, &storyLine.Description); err != nil {
+			return env, err
+		}
+		storyLines = append(storyLines, storyLine)
 	}
 	// Consultar timelines
 	papperQuery := `
@@ -197,5 +218,6 @@ func (rp *World) GetWorldData() (Env, error) {
 	env.Events = events
 	env.Timelines = timelines
 	env.Pappers = pappers
+	env.StoryLines = storyLines
 	return env, nil
 }

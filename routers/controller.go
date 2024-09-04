@@ -45,11 +45,11 @@ func CreateWorld(C *gin.Context) {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting user info. " + err.Error()})
 		return
 	}
-	var rp models.World
-	C.ShouldBindJSON(&rp)
+	var world models.World
+	C.ShouldBindJSON(&world)
 
-	if rp.Name == "" {
-		rp.Name = "PapperTrail"
+	if world.Name == "" {
+		world.Name = "PapperTrail"
 	}
 
 	driveSrv := googleClient.GetAppDriveService()
@@ -64,18 +64,34 @@ func CreateWorld(C *gin.Context) {
 		userInfo.UpdateBaseFolder()
 	}
 
-	folderId, err := googleClient.CreateFolder(driveSrv, rp.Name, userInfo.Base_folder)
+	folderId, err := googleClient.CreateFolder(driveSrv, world.Name, userInfo.Base_folder)
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating world .  " + err.Error()})
 		return
 	}
 
-	rp.Id = folderId.Id
-	rp.UserID = userInfo.ID
-	rp.CreatedAt = time.Now()
-	rp.Save()
+	world.Id = folderId.Id
+	world.UserID = userInfo.ID
+	world.CreatedAt = time.Now()
+	err = world.Save()
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error saving world .  " + err.Error()})
+		return
+	}
 
-	C.JSON(http.StatusOK, gin.H{"message": rp.Name + " folder created successfully."})
+	var strline models.StoryLine
+	_, err = strline.CreateBasicStoryLines(world.Id)
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error saving story lines.  " + err.Error()})
+		return
+	}
+	var timeline models.Timeline
+	_, err = timeline.CreateBasicTimelines(world.Id)
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error saving time lines.  " + err.Error()})
+		return
+	}
+	C.JSON(http.StatusOK, gin.H{"message": world.Name + " folder created successfully."})
 }
 
 func CreatePapper(C *gin.Context) {
@@ -96,18 +112,7 @@ func CreatePapper(C *gin.Context) {
 		return
 	}
 
-	// client, err := userInfo.GetClient(googleOauthConfig)
-	// if err != nil {
-	// 	C.JSON(http.StatusInternalServerError, gin.H{"error": "Error geting google client info. " + err.Error()})
-	// 	return
-	// }
-
-	// driveSrv, err := drive.NewService(context.Background(), option.WithHTTPClient(client))
 	driveSrv := googleClient.GetAppDriveService()
-	// if err != nil {
-	// 	C.JSON(http.StatusInternalServerError, gin.H{"error": "Error geting google driver. " + err.Error()})
-	// 	return
-	// }
 	folder, err := googleClient.CreateFolder(driveSrv, papper.Name, worldsInfo.Id)
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating folder. " + err.Error()})
@@ -448,7 +453,7 @@ func UpdateChapter(C *gin.Context) {
 	C.JSON(http.StatusOK, chapter)
 
 }
-func InsertConnection(C *gin.Context) {
+func CreateConnection(C *gin.Context) {
 	worlds, err := utils.GetWorldsInfo(C)
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
