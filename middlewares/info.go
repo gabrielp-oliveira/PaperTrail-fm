@@ -59,7 +59,8 @@ func PapperInfo(C *gin.Context) {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting User info. " + err.Error()})
 		return
 	}
-	var Chapter models.Chapter
+
+	var Chapter models.ChapterTl
 	C.ShouldBindJSON(&Chapter)
 
 	worldInfo, err := World(userInfo.ID, Chapter.WorldsID)

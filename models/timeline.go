@@ -13,7 +13,7 @@ type Timeline struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	WorldsID    string `json:"world_id"`
-	Order       int    `json:"Order"`
+	Order       int    `json:"order"`
 	Range       int    `json:"range"`
 }
 

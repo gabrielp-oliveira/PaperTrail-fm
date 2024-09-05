@@ -75,3 +75,20 @@ func GetChapterInfo(context *gin.Context) (models.Chapter, error) {
 
 	return ChapterInfo, nil
 }
+
+func GetContextInfo[T any](context *gin.Context, key string) (T, error) {
+	var result T
+
+	value, exists := context.Get(key)
+	if !exists {
+		return result, errors.New("unable to retrieve information from context: " + key)
+	}
+
+	// Realiza o type assertion para o tipo `T`
+	info, ok := value.(T)
+	if !ok {
+		return result, errors.New("unable to assert type for key: " + key)
+	}
+
+	return info, nil
+}

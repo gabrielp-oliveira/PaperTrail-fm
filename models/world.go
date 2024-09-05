@@ -112,12 +112,16 @@ func (rp *World) GetWorldData() (Env, error) {
 		events = append(events, event)
 	}
 
-	// Consultar capítulos
+	// Consultar capítulos junto com as informações da tabela chapter_timeline
 	chaptersQuery := `
-		SELECT id, name, description, created_at, papper_id, world_id, event_id
-		FROM chapters
-		WHERE world_id = $1
-	`
+    SELECT c.id, c.name, c.description, 
+        c.created_at, c.papper_id, c.world_id, 
+        c.event_id, c.storyline_id, c.timeline_id, 
+        ct.range
+    FROM chapters c
+    LEFT JOIN chapter_timeline ct ON c.id = ct.chapter_id
+    WHERE c.world_id = $1
+`
 	rows, err = db.DB.Query(chaptersQuery, rp.Id)
 	if err != nil {
 		return env, err
@@ -126,10 +130,19 @@ func (rp *World) GetWorldData() (Env, error) {
 
 	for rows.Next() {
 		var chapter Chapter
+		var chapterRange sql.NullInt32 // Para lidar com valores nulos de range da tabela chapter_timeline
+
+		// Faz o Scan para capturar os campos da tabela chapters e chapter_timeline
 		if err := rows.Scan(&chapter.Id, &chapter.Name, &chapter.Description, &chapter.CreatedAt,
-			&chapter.PapperID, &chapter.WorldsID, &chapter.EventID); err != nil {
+			&chapter.PapperID, &chapter.WorldsID, &chapter.EventID, &chapter.Storyline_id, &chapter.TimelineID, &chapterRange); err != nil {
 			return env, err
 		}
+
+		// Se houver um valor válido para o range, atribuímos ao capítulo
+		if chapterRange.Valid {
+			chapter.Range = int(chapterRange.Int32)
+		}
+
 		chapters = append(chapters, chapter)
 	}
 
@@ -175,7 +188,7 @@ func (rp *World) GetWorldData() (Env, error) {
 	// Consultar storyLines
 	storylinesQuery := `
 		SELECT id, name, "order", description
-		FROM timelines
+		FROM storylines
 		WHERE world_id = $1
 	`
 	rows, err = db.DB.Query(storylinesQuery, rp.Id)

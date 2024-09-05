@@ -15,7 +15,7 @@ type StoryLine struct {
 	Description string    `json:"description"`
 	Created_at  time.Time `json:"created_at"`
 	WorldsID    string    `json:"world_id"`
-	Order       int       `json:"Order"`
+	Order       int       `json:"order"`
 }
 
 func (t *StoryLine) Save() error {

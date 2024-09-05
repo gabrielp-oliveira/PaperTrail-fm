@@ -9,18 +9,20 @@ import (
 )
 
 type Chapter struct {
-	Id          string         `json:"id"`
-	WorldsID    string         `json:"world_id"`
-	Name        string         `json:"name"`
-	Description string         `json:"description"`
-	CreatedAt   time.Time      `json:"created_at"`
-	PapperID    string         `json:"papper_id"`
-	EventID     sql.NullString `json:"event_id"`
-	TimelineID  sql.NullString `json:"timeline_id"`
-	Link        string         `json:"link"`
-	Update      sql.NullString `json:"update"`
-	Order       sql.NullInt16  `json:"order"`
-	LastUpdate  *time.Time     `json:"last_update"` // Usa ponteiro para time.Time
+	Id           string     `json:"id"`
+	WorldsID     string     `json:"world_id"`
+	Name         string     `json:"name"`
+	Description  string     `json:"description"`
+	CreatedAt    time.Time  `json:"created_at"`
+	PapperID     string     `json:"papper_id"`
+	EventID      *string    `json:"event_id"`
+	TimelineID   *string    `json:"timeline_id"`
+	Storyline_id *string    `json:"storyline_id"`
+	Link         string     `json:"link"`
+	Update       *string    `json:"update"`
+	Order        *int       `json:"order"`
+	Range        int        `json:"range"`
+	LastUpdate   *time.Time `json:"last_update"` // Usa ponteiro para time.Time
 }
 
 func (c *Chapter) Save() error {
@@ -123,8 +125,8 @@ func (c *Chapter) RemoveTimeline() error {
 func (c *Chapter) UpdateChapter() error {
 	query := `
 	UPDATE chapters
-	SET name = $1, description = $2, "order" = $3, update = $4, last_update = $5 
-	WHERE id = $6
+	SET name = $1, description = $2, "order" = $3, update = $4, last_update = $5, storyline_id = $6, timeline_id = $7
+	WHERE id = $8
 	`
 	stmt, err := db.DB.Prepare(query)
 
@@ -134,6 +136,6 @@ func (c *Chapter) UpdateChapter() error {
 
 	defer stmt.Close()
 
-	_, err = stmt.Exec(c.Name, c.Description, c.Order, c.Update, c.LastUpdate, c.Id)
+	_, err = stmt.Exec(c.Name, c.Description, c.Order, c.Update, c.LastUpdate, c.Storyline_id, c.TimelineID, c.Id)
 	return err
 }

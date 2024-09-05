@@ -1,7 +1,6 @@
 package routes
 
 import (
-	"database/sql"
 	"log"
 	"net/http"
 	"time"
@@ -146,11 +145,11 @@ func CreatePapper(C *gin.Context) {
 		return
 	}
 	chapter.Id = chapterId
-	eventID := sql.NullString{String: ""}
-	timelineID := sql.NullString{String: ""}
+	eventID := ""
+	timelineID := ""
 
-	chapter.TimelineID = timelineID
-	chapter.EventID = eventID
+	chapter.TimelineID = &timelineID
+	chapter.EventID = &eventID
 
 	err = chapter.Save()
 	if err != nil {
@@ -172,7 +171,8 @@ func CreatePapper(C *gin.Context) {
 
 func CreateChapter(C *gin.Context) {
 
-	chapter, err := utils.GetChapterInfo(C)
+	chapter, err := utils.GetContextInfo[models.Chapter](C, "chapter")
+
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting chapter info: " + err.Error()})
 		return
@@ -348,7 +348,8 @@ func InsertEvent(C *gin.Context) {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	event, err := utils.GetEventInfo(C)
+	event, err := utils.GetContextInfo[models.Event](C, "event")
+
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -374,7 +375,7 @@ func RemoveEvent(C *gin.Context) {
 		return
 	}
 
-	event, err := utils.GetEventInfo(C)
+	event, err := utils.GetContextInfo[models.Event](C, "event")
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -404,7 +405,7 @@ func UpdateEvent(C *gin.Context) {
 		return
 	}
 
-	event, err := utils.GetEventInfo(C)
+	event, err := utils.GetContextInfo[models.Event](C, "event")
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -438,19 +439,36 @@ func UpdatePapper(C *gin.Context) {
 
 }
 func UpdateChapter(C *gin.Context) {
-	chapter, err := utils.GetChapterInfo(C)
+
+	chapterTL, err := utils.GetContextInfo[models.ChapterTl](C, "chapter")
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	currentTime := time.Now()
-	chapter.LastUpdate = &currentTime
-	err = chapter.UpdateChapter()
+
+	chapterTL.Chapter.LastUpdate = &currentTime
+
+	chapterTL.Chapter.TimelineID = &chapterTL.TimelineID
+	chapterTL.Chapter.Storyline_id = &chapterTL.Storyline_id
+
+	err = chapterTL.Chapter.UpdateChapter()
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	C.JSON(http.StatusOK, chapter)
+
+	var chapterTimeline models.ChapterTimeline
+	chapterTimeline.Chapter_Id = &chapterTL.Id
+	chapterTimeline.TimelineID = &chapterTL.TimelineID
+	chapterTimeline.Range = chapterTL.Range
+
+	err = chapterTimeline.Update()
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	C.JSON(http.StatusOK, chapterTL)
 
 }
 func CreateConnection(C *gin.Context) {
@@ -459,7 +477,7 @@ func CreateConnection(C *gin.Context) {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	cnn, err := utils.GetConnectionInfo(C)
+	cnn, err := utils.GetContextInfo[models.Event](C, "event")
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
