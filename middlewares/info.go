@@ -60,7 +60,7 @@ func PapperInfo(C *gin.Context) {
 		return
 	}
 
-	var Chapter models.ChapterTl
+	var Chapter models.Chapter
 	C.ShouldBindJSON(&Chapter)
 
 	worldInfo, err := World(userInfo.ID, Chapter.WorldsID)

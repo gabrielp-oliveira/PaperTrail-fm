@@ -440,35 +440,35 @@ func UpdatePapper(C *gin.Context) {
 }
 func UpdateChapter(C *gin.Context) {
 
-	chapterTL, err := utils.GetContextInfo[models.ChapterTl](C, "chapter")
+	chapter, err := utils.GetContextInfo[models.Chapter](C, "chapter")
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	currentTime := time.Now()
 
-	chapterTL.Chapter.LastUpdate = &currentTime
+	chapter.LastUpdate = &currentTime
 
-	chapterTL.Chapter.TimelineID = &chapterTL.TimelineID
-	chapterTL.Chapter.Storyline_id = &chapterTL.Storyline_id
+	// chapterTL.chapter.TimelineID = &chapterTL.TimelineID
+	// chapterTL.chapter.Storyline_id = &chapterTL.Storyline_id
 
-	err = chapterTL.Chapter.UpdateChapter()
+	err = chapter.UpdateChapter()
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
 	var chapterTimeline models.ChapterTimeline
-	chapterTimeline.Chapter_Id = &chapterTL.Id
-	chapterTimeline.TimelineID = &chapterTL.TimelineID
-	chapterTimeline.Range = chapterTL.Range
+	chapterTimeline.Chapter_Id = &chapter.Id
+	chapterTimeline.TimelineID = chapter.TimelineID
+	chapterTimeline.Range = chapter.Range
 
 	err = chapterTimeline.Update()
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	C.JSON(http.StatusOK, chapterTL)
+	C.JSON(http.StatusOK, chapter)
 
 }
 func CreateConnection(C *gin.Context) {
