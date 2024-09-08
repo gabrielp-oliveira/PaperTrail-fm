@@ -19,8 +19,14 @@ func (cnn *Connection) Save() error {
 	var id string
 
 	// Verificar se a conexão já existe na tabela connections
-	query := `SELECT id FROM connections WHERE id = $1`
-	err := db.DB.QueryRow(query, cnn.Id).Scan(&id)
+	query := `SELECT id FROM connections WHERE source_chapter_id = $1 and  target_chapter_id = $2`
+	err := db.DB.QueryRow(query, cnn.SourceChapterID, cnn.TargetChapterID).Scan(&id)
+
+	if err != nil && err != sql.ErrNoRows {
+		return fmt.Errorf("error checking connection existence: %v", err)
+	}
+	query = `SELECT id FROM connections WHERE  target_chapter_id = $1 and source_chapter_id = $2`
+	err = db.DB.QueryRow(query, cnn.SourceChapterID, cnn.TargetChapterID).Scan(&id)
 
 	if err != nil && err != sql.ErrNoRows {
 		return fmt.Errorf("error checking connection existence: %v", err)
@@ -29,17 +35,17 @@ func (cnn *Connection) Save() error {
 	if err == sql.ErrNoRows {
 		// Inserir nova conexão na tabela connections
 		query := `
-		INSERT INTO connections (id, source_chapter_id, target_chapter_id)
-		VALUES ($1, $2, $3)
+		INSERT INTO connections (id, source_chapter_id, target_chapter_id, world_id)
+		VALUES ($1, $2, $3, $4)
 	`
-		_, err := db.DB.Exec(query, cnn.Id, cnn.SourceChapterID, cnn.TargetChapterID)
+		_, err := db.DB.Exec(query, cnn.Id, cnn.SourceChapterID, cnn.TargetChapterID, cnn.World_id)
 		if err != nil {
 			return fmt.Errorf("error inserting connection: %v", err)
 		}
 
 		fmt.Println("Inserted new connection into database")
 	} else {
-		fmt.Println("Connection already exists in database")
+		return fmt.Errorf("Connection already exists in database")
 	}
 
 	return nil

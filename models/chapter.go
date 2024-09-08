@@ -20,7 +20,7 @@ type Chapter struct {
 	Storyline_id *string    `json:"storyline_id"`
 	Link         string     `json:"link"`
 	Update       *string    `json:"update"`
-	Order        *int       `json:"order"`
+	Order        int        `json:"order"`
 	Range        int        `json:"range"`
 	LastUpdate   *time.Time `json:"last_update"` // Usa ponteiro para time.Time
 }
@@ -39,10 +39,26 @@ func (c *Chapter) Save() error {
 
 	if err == sql.ErrNoRows {
 		// Se não há linhas (capítulo não existe), insere um novo registro
+
+		var maxOrder *int
+		orderQuery := `SELECT MAX("order") FROM chapters WHERE world_id = $1 and papper_id = $2`
+		err := db.DB.QueryRow(orderQuery, c.WorldsID, c.PapperID).Scan(&maxOrder)
+		if err != nil {
+			return fmt.Errorf("error getting max order: %v", err)
+		}
+
+		newOrder := 1
+		if maxOrder != nil {
+			newOrder = *maxOrder + 1
+		} else {
+			newOrder = 1
+
+		}
+
 		insertQuery := `
-		INSERT INTO chapters(id, name, description, created_at, papper_id, world_id, event_id, timeline_id) 
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
-		_, err := db.DB.Exec(insertQuery, c.Id, c.Name, c.Description, c.CreatedAt, c.PapperID, c.WorldsID, c.EventID, c.TimelineID)
+		INSERT INTO chapters(id, name, description, created_at, papper_id, world_id, event_id, timeline_id, "order") 
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`
+		_, err = db.DB.Exec(insertQuery, c.Id, c.Name, c.Description, c.CreatedAt, c.PapperID, c.WorldsID, c.EventID, c.TimelineID, newOrder)
 		if err != nil {
 			return fmt.Errorf("error inserting chapter: %v", err)
 		}

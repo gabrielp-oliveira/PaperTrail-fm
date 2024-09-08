@@ -472,12 +472,8 @@ func UpdateChapter(C *gin.Context) {
 
 }
 func CreateConnection(C *gin.Context) {
-	worlds, err := utils.GetWorldsInfo(C)
-	if err != nil {
-		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	cnn, err := utils.GetContextInfo[models.Event](C, "event")
+
+	cnn, err := utils.GetContextInfo[models.Connection](C, "connection")
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -489,20 +485,12 @@ func CreateConnection(C *gin.Context) {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	environment, err := worlds.GetWorldData()
-	if err != nil {
-		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	C.JSON(http.StatusOK, environment)
+
+	C.JSON(http.StatusOK, cnn)
 
 }
 func RemoveConnection(C *gin.Context) {
-	worlds, err := utils.GetWorldsInfo(C)
-	if err != nil {
-		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
+
 	cnn, err := utils.GetConnectionInfo(C)
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -517,11 +505,7 @@ func RemoveConnection(C *gin.Context) {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	environment, err := worlds.GetWorldData()
-	if err != nil {
-		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	C.JSON(http.StatusOK, environment)
+
+	C.JSON(http.StatusOK, err)
 
 }

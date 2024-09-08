@@ -69,10 +69,10 @@ func PapperInfo(C *gin.Context) {
 		return
 	}
 
-	query := "SELECT name, id, description, path, created_at, world_id FROM pappers WHERE world_id = $1 and id = $2"
+	query := `SELECT name, id, description, path, created_at, world_id, "order" FROM pappers WHERE world_id = $1 and id = $2`
 	row := db.DB.QueryRow(query, worldInfo.Id, Chapter.PapperID)
 	var papper models.Papper
-	err = row.Scan(&papper.Name, &papper.ID, &papper.Description, &papper.Path, &papper.Created_at, &papper.World_id)
+	err = row.Scan(&papper.Name, &papper.ID, &papper.Description, &papper.Path, &papper.Created_at, &papper.World_id, &papper.Order)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			C.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "world  not found in google drive. " + err.Error()})
@@ -110,14 +110,15 @@ func ConnectionHandler(C *gin.Context) {
 		C.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": err.Error()})
 		return
 	}
-	type Cnn struct {
-		models.Connection
-		WorldsId string
-	}
-	var connection Cnn
+
+	var connection models.Connection
 	C.ShouldBindJSON(&connection)
 
-	world, err := World(userInfo.ID, connection.WorldsId)
+	world, err := World(userInfo.ID, connection.World_id)
+	if err != nil {
+		C.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": err.Error()})
+		return
+	}
 	C.Set("world", world)
 	C.Set("connection", connection)
 

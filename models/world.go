@@ -116,7 +116,7 @@ func (rp *World) GetWorldData() (Env, error) {
 	chaptersQuery := `
     SELECT c.id, c.name, c.description, 
         c.created_at, c.papper_id, c.world_id, 
-        c.event_id, c.storyline_id, c.timeline_id, 
+        c.event_id, c.storyline_id, c.timeline_id, c.order,
         ct.range
     FROM chapters c
     LEFT JOIN chapter_timeline ct ON c.id = ct.chapter_id
@@ -134,7 +134,7 @@ func (rp *World) GetWorldData() (Env, error) {
 
 		// Faz o Scan para capturar os campos da tabela chapters e chapter_timeline
 		if err := rows.Scan(&chapter.Id, &chapter.Name, &chapter.Description, &chapter.CreatedAt,
-			&chapter.PapperID, &chapter.WorldsID, &chapter.EventID, &chapter.Storyline_id, &chapter.TimelineID, &chapterRange); err != nil {
+			&chapter.PapperID, &chapter.WorldsID, &chapter.EventID, &chapter.Storyline_id, &chapter.TimelineID, &chapter.Order, &chapterRange); err != nil {
 			return env, err
 		}
 
@@ -163,6 +163,7 @@ func (rp *World) GetWorldData() (Env, error) {
 		if err := rows.Scan(&connection.Id, &connection.SourceChapterID, &connection.TargetChapterID); err != nil {
 			return env, err
 		}
+		connection.World_id = rp.Id
 		connections = append(connections, connection)
 	}
 
@@ -206,7 +207,7 @@ func (rp *World) GetWorldData() (Env, error) {
 	}
 	// Consultar timelines
 	papperQuery := `
-		SELECT id, name, description, created_at
+		SELECT id, name, description, created_at, "order"
 		FROM pappers
 		WHERE world_id = $1
 	`
@@ -218,9 +219,10 @@ func (rp *World) GetWorldData() (Env, error) {
 
 	for rows.Next() {
 		var papper Papper
-		if err := rows.Scan(&papper.ID, &papper.Name, &papper.Description, &papper.Created_at); err != nil {
+		if err := rows.Scan(&papper.ID, &papper.Name, &papper.Description, &papper.Created_at, &papper.Order); err != nil {
 			return env, err
 		}
+
 		pappers = append(pappers, papper)
 	}
 

@@ -16,7 +16,7 @@ type Papper struct {
 	Path        string    `json:"path"`
 	Created_at  time.Time `json:"created_at"`
 	World_id    string    `json:"world_id"`
-	Order       *int      `json:"order,omitempty"` // Use ponteiro para lidar com valores nulos
+	Order       int       `json:"order,omitempty"` // Use ponteiro para lidar com valores nulos
 }
 
 func (e *Papper) Save() error {
@@ -44,6 +44,7 @@ func (e *Papper) Save() error {
 			newOrder = *maxOrder + 1
 		}
 
+		e.Order = newOrder
 		insertQuery := `
 		INSERT INTO pappers(id, name, description, path, created_at, world_id, "order") 
 		VALUES ($1, $2, $3, $4, $5, $6, $7)`
