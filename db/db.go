@@ -72,8 +72,8 @@ func createTables(db *sql.DB) {
 		`CREATE TABLE IF NOT EXISTS events (
 			id TEXT PRIMARY KEY,
 			name TEXT NOT NULL,
-			start_date DATE NOT NULL,
-			end_date DATE NOT NULL,
+			start_range integer NOT NULL,
+			end_range integer NOT NULL,
 			world_id TEXT,
 			FOREIGN KEY(world_id) REFERENCES worlds(id)
 		);`,

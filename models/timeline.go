@@ -31,6 +31,23 @@ func (t *Timeline) Save() error {
 
 	if err == sql.ErrNoRows {
 		// Se não há linhas (Timeline não existe), insere um novo registro
+
+		var maxOrder *int
+		orderQuery := `SELECT MAX("order") FROM timelined WHERE world_id = $1 `
+		err = db.DB.QueryRow(orderQuery, t.WorldsID).Scan(&maxOrder)
+		if err != nil {
+			return fmt.Errorf("error getting max order: %v", err)
+		}
+
+		newOrder := 1
+		if maxOrder != nil {
+			newOrder = *maxOrder + 1
+		} else {
+			newOrder = 1
+		}
+
+		t.Order = newOrder
+
 		insertQuery := `
 		INSERT INTO timelines(id, name, description, range, world_id, "order") 
 		VALUES ($1, $2, $3, $4, $5, $6)`
@@ -156,4 +173,24 @@ func (t Timeline) CreateBasicTimelines(wiD string) ([]Timeline, error) {
 	TimelineList = append(TimelineList, tmLine5)
 	return TimelineList, nil
 
+}
+
+func (t *Timeline) Update() error {
+	// id, name, description, range, "order"
+
+	query := `
+	UPDATE timelines
+	SET name = $1, description = $2,range= $3, "order" = $4
+	WHERE id = $5
+	`
+	stmt, err := db.DB.Prepare(query)
+
+	if err != nil {
+		return err
+	}
+
+	defer stmt.Close()
+
+	_, err = stmt.Exec(t.Name, t.Description, t.Range, t.Order, t.Id)
+	return err
 }

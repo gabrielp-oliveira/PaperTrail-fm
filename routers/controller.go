@@ -201,13 +201,13 @@ func CreateChapter(C *gin.Context) {
 		return
 	}
 
-	file, err := driveSrv.Files.Get(docId).Fields("webViewLink").Do()
-	if err != nil {
-		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error fetching document link: " + err.Error()})
-		return
-	}
+	// file, err := driveSrv.Files.Get(docId).Fields("webViewLink").Do()
+	// if err != nil {
+	// 	C.JSON(http.StatusInternalServerError, gin.H{"error": "Error fetching document link: " + err.Error()})
+	// 	return
+	// }
 
-	C.JSON(http.StatusOK, gin.H{"documentUrl": file.WebViewLink})
+	C.JSON(http.StatusOK, chapter)
 }
 
 func GetWorldsList(C *gin.Context) {
@@ -488,6 +488,99 @@ func CreateConnection(C *gin.Context) {
 
 	C.JSON(http.StatusOK, cnn)
 
+}
+func CreateTimeline(C *gin.Context) {
+
+	tl, err := utils.GetContextInfo[models.Timeline](C, "timeline")
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	id := uuid.New().String()
+	tl.Id = id
+	err = tl.Save()
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	C.JSON(http.StatusOK, tl)
+}
+func CreateStoryline(C *gin.Context) {
+
+	stl, err := utils.GetContextInfo[models.StoryLine](C, "storyline")
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	id := uuid.New().String()
+	stl.Id = id
+	stl.Created_at = time.Now()
+
+	err = stl.Save()
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	C.JSON(http.StatusOK, stl)
+}
+func UpdateTimeline(C *gin.Context) {
+
+	tl, err := utils.GetContextInfo[models.Timeline](C, "timeline")
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// err = tl.Update()
+	// if err != nil {
+	// 	C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	// 	return
+	// }
+	C.JSON(http.StatusOK, tl)
+}
+
+func UpdateStoryline(C *gin.Context) {
+
+	stl, err := utils.GetContextInfo[models.StoryLine](C, "storyline")
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	err = stl.Update()
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	C.JSON(http.StatusOK, stl)
+}
+func DeleteTimeline(C *gin.Context) {
+	cnnId := C.Query("id")
+
+	var cnn models.Timeline
+	cnn.Id = cnnId
+
+	// err := cnn.Delete()
+
+	// if err != nil {
+	// 	C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	// 	return
+	// }
+	C.JSON(http.StatusOK, cnn)
+}
+func DeleteStoryline(C *gin.Context) {
+	stlId := C.Query("id")
+
+	var stl models.StoryLine
+	stl.Id = stlId
+
+	err := stl.Delete()
+
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	C.JSON(http.StatusOK, stl)
 }
 func RemoveConnection(C *gin.Context) {
 

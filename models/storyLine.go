@@ -31,6 +31,22 @@ func (t *StoryLine) Save() error {
 	}
 
 	if err == sql.ErrNoRows {
+		var maxOrder *int
+		orderQuery := `SELECT MAX("order") FROM storyLines WHERE world_id = $1 `
+		err = db.DB.QueryRow(orderQuery, t.WorldsID).Scan(&maxOrder)
+		if err != nil {
+			return fmt.Errorf("error getting max order: %v", err)
+		}
+
+		newOrder := 1
+		if maxOrder != nil {
+			newOrder = *maxOrder + 1
+		} else {
+			newOrder = 1
+		}
+
+		t.Order = newOrder
+
 		// Se não há linhas (storyLines não existe), insere um novo registro
 		insertQuery := `
 		INSERT INTO storyLines(id, name, description, created_at, world_id, "order") 
@@ -124,4 +140,24 @@ func (t StoryLine) CreateBasicStoryLines(wiD string) ([]StoryLine, error) {
 	storyLinesList = append(storyLinesList, str3)
 	return storyLinesList, nil
 
+}
+
+func (t *StoryLine) Update() error {
+	// id, name, description, range, "order"
+
+	query := `
+	UPDATE storylines
+	SET name = $1, description = $2, "order" = $3
+	WHERE id = $4
+	`
+	stmt, err := db.DB.Prepare(query)
+
+	if err != nil {
+		return err
+	}
+
+	defer stmt.Close()
+
+	_, err = stmt.Exec(t.Name, t.Description, t.Order, t.Id)
+	return err
 }

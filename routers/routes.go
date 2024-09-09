@@ -36,6 +36,16 @@ func RegisterRoutes(server *gin.Engine) {
 	authenticatedPapper.PUT("/updateChapter", UpdateChapter)
 	authenticatedPapper.GET("/getChapterList", GetChapterList)
 
+	authTimeline := authenticated.Group("/").Use(middlewares.TimelineInfo)
+	authTimeline.POST("/createTimeline", CreateTimeline)
+	authTimeline.PUT("/updateTimeline", UpdateTimeline)
+	authTimeline.DELETE("/deleteTimeline", DeleteTimeline)
+
+	authStoryline := authenticated.Group("/").Use(middlewares.StorylineInfo)
+	authStoryline.POST("/createStoryline", CreateStoryline)
+	authStoryline.PUT("/updateStoryline", UpdateStoryline)
+	authStoryline.DELETE("/deleteStoryline", DeleteStoryline)
+
 	authenticated.GET("/chapterUrl", GetChapterUrl)
 	authenticated.GET("/chapter", GetChapter)
 	authenticated.GET("/papper", GetPapper)

@@ -2,6 +2,7 @@ package middlewares
 
 import (
 	"database/sql"
+	"fmt"
 	"net/http"
 
 	"PaperTrail-fm.com/db"
@@ -69,22 +70,80 @@ func PapperInfo(C *gin.Context) {
 		return
 	}
 
-	query := `SELECT name, id, description, path, created_at, world_id, "order" FROM pappers WHERE world_id = $1 and id = $2`
+	query := `SELECT name, id, description, path, created_at, world_id, "order" FROM pappers WHERE id = $1`
 	row := db.DB.QueryRow(query, worldInfo.Id, Chapter.PapperID)
 	var papper models.Papper
 	err = row.Scan(&papper.Name, &papper.ID, &papper.Description, &papper.Path, &papper.Created_at, &papper.World_id, &papper.Order)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			C.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "world  not found in google drive. " + err.Error()})
-			return
+			fmt.Errorf("papper not found.")
 		}
-
-		C.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": err.Error()})
-		return
 	}
 
 	C.Set("papper", papper)
 	C.Set("chapter", Chapter)
+
+	C.Next()
+}
+func StorylineInfo(C *gin.Context) {
+	userInfo, err := utils.GetUserInfo(C)
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting User info. " + err.Error()})
+		return
+	}
+
+	var stl models.StoryLine
+	C.ShouldBindJSON(&stl)
+
+	worldInfo, err := World(userInfo.ID, stl.WorldsID)
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting Root papper info. " + err.Error()})
+		return
+	}
+
+	query := "SELECT name, description, created_at, worldsId, 'order' FROM storyLines WHERE id = $1"
+	row := db.DB.QueryRow(query, stl.Id)
+
+	err = row.Scan(&stl.Name, &stl.Description, &stl.Created_at, &stl.WorldsID, &stl.Order)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			fmt.Errorf("papper not found.")
+		}
+	}
+
+	C.Set("world", worldInfo)
+	C.Set("storyline", stl)
+
+	C.Next()
+}
+func TimelineInfo(C *gin.Context) {
+	userInfo, err := utils.GetUserInfo(C)
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting User info. " + err.Error()})
+		return
+	}
+
+	var tl models.Timeline
+	C.ShouldBindJSON(&tl)
+
+	worldInfo, err := World(userInfo.ID, tl.WorldsID)
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting Root papper info. " + err.Error()})
+		return
+	}
+
+	query := "SELECT id, name, description, range, worldsId, 'order' FROM Timelines WHERE id = $1"
+	row := db.DB.QueryRow(query, tl.Id)
+
+	err = row.Scan(&tl.Id, &tl.Name, &tl.Description, &tl.Range, &tl.WorldsID, &tl.Order)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			fmt.Errorf("papper not found.")
+		}
+	}
+
+	C.Set("world", worldInfo)
+	C.Set("timeline", tl)
 
 	C.Next()
 }
