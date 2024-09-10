@@ -65,6 +65,7 @@ func createTables(db *sql.DB) {
 			description TEXT,
 			"order" integer,
 			range integer,
+			range_start integer,
 			world_id TEXT NOT NULL,
 			FOREIGN KEY(world_id) REFERENCES worlds(id)
 		);`,

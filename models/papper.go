@@ -192,3 +192,28 @@ func (papper *Papper) Get() error {
 	}
 	return nil
 }
+
+func GetPapperListByWorldId(worldId string) ([]Papper, error) {
+	pappers := []Papper{}
+
+	papperQuery := `
+	SELECT id, name, description, created_at, "order"
+	FROM pappers
+	WHERE world_id = $1
+	`
+	rows, err := db.DB.Query(papperQuery, worldId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var papper Papper
+		if err := rows.Scan(&papper.ID, &papper.Name, &papper.Description, &papper.Created_at, &papper.Order); err != nil {
+			return nil, err
+		}
+
+		pappers = append(pappers, papper)
+	}
+	return pappers, err
+}

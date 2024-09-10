@@ -64,17 +64,29 @@ func (t *StoryLine) Save() error {
 	return nil
 }
 
-func GetstoryLinesByWorldId(worldId string) (*StoryLine, error) {
-	query := "SELECT id, name, description, created_at, worldsId, 'order' FROM storyLines WHERE id = $1"
-	row := db.DB.QueryRow(query, worldId)
+func GetstoryLinesByWorldId(worldId string) ([]StoryLine, error) {
+	storyLines := []StoryLine{}
 
-	var storyLines StoryLine
-	err := row.Scan(&storyLines.Id, &storyLines.WorldsID, &storyLines.Name, &storyLines.Description, &storyLines.Created_at, &storyLines.WorldsID, &storyLines.Order)
+	storylinesQuery := `
+		SELECT id, name, "order", description
+		FROM storylines
+		WHERE world_id = $1
+	`
+	rows, err := db.DB.Query(storylinesQuery, worldId)
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
-	return &storyLines, nil
+	for rows.Next() {
+		var storyLine StoryLine
+		if err := rows.Scan(&storyLine.Id, &storyLine.Name, &storyLine.Order, &storyLine.Description); err != nil {
+			return nil, err
+		}
+		storyLines = append(storyLines, storyLine)
+	}
+
+	return storyLines, err
 }
 
 func (t *StoryLine) Delete() error {

@@ -132,3 +132,41 @@ func (t *ChapterTimeline) Update() error {
 	return nil
 
 }
+
+func GetChapteJoinTimelineByWorldId(worldId string) ([]Chapter, error) {
+	chapters := []Chapter{}
+
+	chaptersQuery := `
+    SELECT c.id, c.name, c.description, 
+        c.created_at, c.papper_id, c.world_id, 
+        c.event_id, c.storyline_id, c.timeline_id, c.order,
+        ct.range
+    FROM chapters c
+    LEFT JOIN chapter_timeline ct ON c.id = ct.chapter_id
+    WHERE c.world_id = $1
+`
+	rows, err := db.DB.Query(chaptersQuery, worldId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var chapter Chapter
+		var chapterRange sql.NullInt32 // Para lidar com valores nulos de range da tabela chapter_timeline
+
+		// Faz o Scan para capturar os campos da tabela chapters e chapter_timeline
+		if err := rows.Scan(&chapter.Id, &chapter.Name, &chapter.Description, &chapter.CreatedAt,
+			&chapter.PapperID, &chapter.WorldsID, &chapter.EventID, &chapter.Storyline_id, &chapter.TimelineID, &chapter.Order, &chapterRange); err != nil {
+			return nil, err
+		}
+
+		// Se houver um valor válido para o range, atribuímos ao capítulo
+		if chapterRange.Valid {
+			chapter.Range = int(chapterRange.Int32)
+		}
+
+		chapters = append(chapters, chapter)
+	}
+	return chapters, err
+}

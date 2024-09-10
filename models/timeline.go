@@ -15,6 +15,7 @@ type Timeline struct {
 	WorldsID    string `json:"world_id"`
 	Order       int    `json:"order"`
 	Range       int    `json:"range"`
+	LeftGap     int    `json:"leftgap"`
 }
 
 func (t *Timeline) Save() error {
@@ -47,11 +48,11 @@ func (t *Timeline) Save() error {
 		}
 
 		t.Order = newOrder
-
+		t.LeftGap = 0
 		insertQuery := `
-		INSERT INTO timelines(id, name, description, range, world_id, "order") 
+		INSERT INTO timelines(id, name, description, range, world_id, "order", leftgap) 
 		VALUES ($1, $2, $3, $4, $5, $6)`
-		_, err := db.DB.Exec(insertQuery, t.Id, t.Name, t.Description, t.Range, t.WorldsID, t.Order)
+		_, err := db.DB.Exec(insertQuery, t.Id, t.Name, t.Description, t.Range, t.WorldsID, t.Order, t.LeftGap)
 		if err != nil {
 			return fmt.Errorf("error inserting Timeline: %v", err)
 		}
@@ -64,17 +65,27 @@ func (t *Timeline) Save() error {
 	return nil
 }
 
-func GetTimelinesByWorldId(worldId string) (*Timeline, error) {
-	query := "SELECT id, name, description, range, worldsId, 'order' FROM Timelines WHERE id = $1"
-	row := db.DB.QueryRow(query, worldId)
-
-	var Timeline Timeline
-	err := row.Scan(&Timeline.Id, &Timeline.WorldsID, &Timeline.Name, &Timeline.Description, &Timeline.Range, &Timeline.WorldsID, &Timeline.Order)
+func GetTimelinesByWorldId(worldId string) ([]Timeline, error) {
+	timelines := []Timeline{}
+	timelinesQuery := `
+		SELECT id, name, world_id, range, "order", description, leftgap
+		FROM timelines
+		WHERE world_id = $1
+	`
+	rows, err := db.DB.Query(timelinesQuery, worldId)
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
-	return &Timeline, nil
+	for rows.Next() {
+		var timeline Timeline
+		if err := rows.Scan(&timeline.Id, &timeline.Name, &timeline.WorldsID, &timeline.Range, &timeline.Order, &timeline.Description, &timeline.LeftGap); err != nil {
+			return nil, err
+		}
+		timelines = append(timelines, timeline)
+	}
+	return timelines, err
 }
 
 func (t *Timeline) Delete() error {
@@ -180,8 +191,8 @@ func (t *Timeline) Update() error {
 
 	query := `
 	UPDATE timelines
-	SET name = $1, description = $2,range= $3, "order" = $4
-	WHERE id = $5
+	SET name = $1, description = $2,range= $3, "order" = $4, leftgap = $5
+	WHERE id = $6
 	`
 	stmt, err := db.DB.Prepare(query)
 
@@ -191,6 +202,6 @@ func (t *Timeline) Update() error {
 
 	defer stmt.Close()
 
-	_, err = stmt.Exec(t.Name, t.Description, t.Range, t.Order, t.Id)
+	_, err = stmt.Exec(t.Name, t.Description, t.Range, t.Order, t.LeftGap, t.Id)
 	return err
 }

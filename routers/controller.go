@@ -531,11 +531,11 @@ func UpdateTimeline(C *gin.Context) {
 		return
 	}
 
-	// err = tl.Update()
-	// if err != nil {
-	// 	C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-	// 	return
-	// }
+	err = tl.Update()
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
 	C.JSON(http.StatusOK, tl)
 }
 

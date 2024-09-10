@@ -68,3 +68,29 @@ func (cnn *Connection) Delete() error {
 
 	return nil
 }
+
+func GetConnectionsListByWorldId(worldId string) ([]Connection, error) {
+
+	connections := []Connection{}
+	connectionsQuery := `
+		SELECT id, source_chapter_id, target_chapter_id
+		FROM connections
+		WHERE source_chapter_id IN (SELECT id FROM chapters WHERE world_id = $1)
+	`
+	rows, err := db.DB.Query(connectionsQuery, worldId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var connection Connection
+		if err := rows.Scan(&connection.Id, &connection.SourceChapterID, &connection.TargetChapterID); err != nil {
+			return nil, err
+		}
+		connection.World_id = worldId
+		connections = append(connections, connection)
+	}
+
+	return connections, err
+}

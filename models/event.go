@@ -78,3 +78,27 @@ func (ev *Event) Update() error {
 
 	return nil
 }
+
+func getEventsByWorldId(worldId string) ([]Event, error) {
+	events := []Event{}
+
+	eventsQuery := `
+	SELECT id, name, start_date, end_date, world_id
+	FROM events
+	WHERE world_id = $1
+`
+	rows, err := db.DB.Query(eventsQuery, worldId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var event Event
+		if err := rows.Scan(&event.Id, &event.Name, &event.Start_date, &event.End_date, &event.World_id); err != nil {
+			return nil, err
+		}
+		events = append(events, event)
+	}
+	return events, err
+}
