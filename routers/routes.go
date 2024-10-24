@@ -15,9 +15,10 @@ func RegisterRoutes(server *gin.Engine) {
 	authenticated.GET("/world", GetWorldData)
 
 	authenticatedWorlds := authenticated.Group("/").Use(middlewares.WorldInfo)
-	authenticatedWorlds.POST("/createPapper", CreatePapper)
-	authenticatedWorlds.PUT("/updatePapper", UpdatePapper)
-	authenticatedWorlds.GET("/getPapperList", getPapperList)
+	authenticatedWorlds.POST("/createPaper", CreatePaper)
+	authenticatedWorlds.PUT("/updatePaper", UpdatePaper)
+	authenticated.PUT("/updatePaperList", UpdatePaperList)
+	authenticatedWorlds.GET("/getPaperList", getPaperList)
 
 	// authenticatedWorlds.GET("/world", GetWorldData)
 
@@ -29,12 +30,13 @@ func RegisterRoutes(server *gin.Engine) {
 	authConnection := authenticated.Group("/").Use(middlewares.ConnectionHandler)
 	authConnection.POST("/createConnection", CreateConnection)
 	authConnection.POST("/removeConnection", RemoveConnection)
-	// authenticatedPapper.GET("/papper", GetPapper)
+	// authenticatedPaper.GET("/paper", GetPaper)
 
-	authenticatedPapper := authenticated.Group("/").Use(middlewares.PapperInfo)
-	authenticatedPapper.POST("/createChapter", CreateChapter)
-	authenticatedPapper.PUT("/updateChapter", UpdateChapter)
-	authenticatedPapper.GET("/getChapterList", GetChapterList)
+	authenticatedPaper := authenticated.Group("/").Use(middlewares.PaperInfo)
+	authenticatedPaper.POST("/createChapter", CreateChapter)
+	authenticatedPaper.PUT("/updateChapter", UpdateChapter)
+	authenticated.PUT("/updateChapterList", UpdateChapterList)
+	authenticatedPaper.GET("/getChapterList", GetChapterList)
 
 	authTimeline := authenticated.Group("/").Use(middlewares.TimelineInfo)
 	authTimeline.POST("/createTimeline", CreateTimeline)
@@ -44,10 +46,11 @@ func RegisterRoutes(server *gin.Engine) {
 	authStoryline := authenticated.Group("/").Use(middlewares.StorylineInfo)
 	authStoryline.POST("/createStoryline", CreateStoryline)
 	authStoryline.PUT("/updateStoryline", UpdateStoryline)
+	authenticated.PUT("/updateStorylineList", UpdateStorylineList)
 	authStoryline.DELETE("/deleteStoryline", DeleteStoryline)
 
 	authenticated.GET("/chapterUrl", GetChapterUrl)
 	authenticated.GET("/chapter", GetChapter)
-	authenticated.GET("/papper", GetPapper)
+	authenticated.GET("/paper", GetPaper)
 	// use the right middleware later
 }

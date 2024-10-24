@@ -48,7 +48,7 @@ func CreateWorld(C *gin.Context) {
 	C.ShouldBindJSON(&world)
 
 	if world.Name == "" {
-		world.Name = "PapperTrail"
+		world.Name = "PaperTrail"
 	}
 
 	driveSrv := googleClient.GetAppDriveService()
@@ -93,13 +93,13 @@ func CreateWorld(C *gin.Context) {
 	C.JSON(http.StatusOK, gin.H{"message": world.Name + " folder created successfully."})
 }
 
-func CreatePapper(C *gin.Context) {
+func CreatePaper(C *gin.Context) {
 	worldsInfo, err := utils.GetWorldsInfo(C)
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	papper, err := utils.GetPapperInfo(C)
+	paper, err := utils.GetPaperInfo(C)
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -112,22 +112,22 @@ func CreatePapper(C *gin.Context) {
 	}
 
 	driveSrv := googleClient.GetAppDriveService()
-	folder, err := googleClient.CreateFolder(driveSrv, papper.Name, worldsInfo.Id)
+	folder, err := googleClient.CreateFolder(driveSrv, paper.Name, worldsInfo.Id)
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating folder. " + err.Error()})
 		return
 	}
 
-	papper.World_id = worldsInfo.Id
-	papper.Path = worldsInfo.Name + "/" + papper.Name
-	papper.ID = folder.Id
-	papper.Created_at = time.Now()
-	err = papper.Save()
+	paper.World_id = worldsInfo.Id
+	paper.Path = worldsInfo.Name + "/" + paper.Name
+	paper.ID = folder.Id
+	paper.Created_at = time.Now()
+	err = paper.Save()
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	_, err = googleClient.CreateReadmeFile(driveSrv, papper.ID, "# read me content for this papper.")
+	_, err = googleClient.CreateReadmeFile(driveSrv, paper.ID, "# read me content for this paper.")
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating read me. " + err.Error()})
 		return
@@ -135,21 +135,19 @@ func CreatePapper(C *gin.Context) {
 
 	var chapter models.Chapter
 	chapter.Name = "chapter 1"
-	chapter.PapperID = papper.ID
+	chapter.PaperID = paper.ID
 	chapter.WorldsID = worldsInfo.Id
-	chapter.Description = "First chapter from " + papper.Name
+	chapter.Description = "First chapter from " + paper.Name
 	chapter.CreatedAt = time.Now()
-	chapterId, err := googleClient.CreateChapter(driveSrv, chapter.Name, chapter.PapperID, userInfo.Email)
+	chapterId, err := googleClient.CreateChapter(driveSrv, chapter.Name, chapter.PaperID, userInfo.Email)
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error " + err.Error()})
 		return
 	}
 	chapter.Id = chapterId
-	eventID := ""
-	timelineID := ""
 
-	chapter.TimelineID = &timelineID
-	chapter.EventID = &eventID
+	chapter.TimelineID = nil
+	chapter.EventID = nil
 
 	err = chapter.Save()
 	if err != nil {
@@ -157,13 +155,13 @@ func CreatePapper(C *gin.Context) {
 		return
 	}
 	log.Println("Repository successfully uploaded to Google Drive")
-	type papperChapter struct {
-		models.Papper
+	type PaperChapter struct {
+		models.Paper
 		Chapter []models.Chapter `json:"chapter"`
 	}
 
-	response := papperChapter{
-		Papper: papper,
+	response := PaperChapter{
+		Paper: paper,
 	}
 	response.Chapter = append(response.Chapter, chapter)
 	C.JSON(http.StatusOK, response)
@@ -187,7 +185,7 @@ func CreateChapter(C *gin.Context) {
 	}
 
 	// Cria o documento no Google Drive
-	docId, err := googleClient.CreateChapter(driveSrv, chapter.Name, chapter.PapperID, userInfo.Email)
+	docId, err := googleClient.CreateChapter(driveSrv, chapter.Name, chapter.PaperID, userInfo.Email)
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating document: " + err.Error()})
 		return
@@ -218,7 +216,7 @@ func GetWorldsList(C *gin.Context) {
 	}
 	list, err := userInfo.GetWorldss()
 	if err != nil {
-		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting user root papper. " + err.Error()})
+		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting user root paper. " + err.Error()})
 		return
 	}
 	C.JSON(http.StatusOK, list)
@@ -226,7 +224,7 @@ func GetWorldsList(C *gin.Context) {
 }
 
 func GetChapterList(C *gin.Context) {
-	papper, err := utils.GetPapperInfo(C)
+	paper, err := utils.GetPaperInfo(C)
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -238,7 +236,7 @@ func GetChapterList(C *gin.Context) {
 	}
 	driveSrv := googleClient.GetAppDriveService()
 
-	list, err := papper.GetChapterList(driveSrv, userInfo.AccessToken)
+	list, err := paper.GetChapterList(driveSrv, userInfo.AccessToken)
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting chapter. " + err.Error()})
 		return
@@ -247,15 +245,15 @@ func GetChapterList(C *gin.Context) {
 
 }
 
-func getPapperList(C *gin.Context) {
+func getPaperList(C *gin.Context) {
 	worlds, err := utils.GetWorldsInfo(C)
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	list, err := worlds.GetPapperList()
+	list, err := worlds.GetPaperList()
 	if err != nil {
-		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting papper. " + err.Error()})
+		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting paper. " + err.Error()})
 		return
 	}
 	C.JSON(http.StatusOK, list)
@@ -307,23 +305,23 @@ func GetChapter(C *gin.Context) {
 
 	C.JSON(http.StatusOK, chapter)
 }
-func GetPapper(C *gin.Context) {
-	papperId := C.Query("id")
-	if papperId == "" {
+func GetPaper(C *gin.Context) {
+	PaperId := C.Query("id")
+	if PaperId == "" {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting chapter id."})
 		return
 	}
 
-	var papper models.Papper
-	papper.ID = papperId
+	var paper models.Paper
+	paper.ID = PaperId
 
-	err := papper.Get()
+	err := paper.Get()
 	if err != nil {
-		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting papper info: " + err.Error()})
+		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting paper info: " + err.Error()})
 		return
 	}
 
-	C.JSON(http.StatusOK, papper)
+	C.JSON(http.StatusOK, paper)
 }
 
 func GetWorldData(C *gin.Context) {
@@ -424,18 +422,37 @@ func UpdateEvent(C *gin.Context) {
 	C.JSON(http.StatusOK, environment)
 
 }
-func UpdatePapper(C *gin.Context) {
-	papper, err := utils.GetPapperInfo(C)
+func UpdatePaper(C *gin.Context) {
+	paper, err := utils.GetPaperInfo(C)
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	err = papper.Update()
+	err = paper.Update()
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	C.JSON(http.StatusOK, papper)
+	C.JSON(http.StatusOK, paper)
+
+}
+func UpdatePaperList(C *gin.Context) {
+	var pprs []models.Paper // Suponha que `Element` é a estrutura de seus elementos
+
+	if err := C.ShouldBindJSON(&pprs); err != nil {
+		C.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	for _, pp := range pprs {
+		// Lógica de atualização para cada elemento
+		if err := pp.Update(); err != nil {
+			C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+	}
+
+	C.JSON(http.StatusOK, true)
 
 }
 func UpdateChapter(C *gin.Context) {
@@ -469,6 +486,31 @@ func UpdateChapter(C *gin.Context) {
 		return
 	}
 	C.JSON(http.StatusOK, chapter)
+
+}
+func UpdateChapterList(C *gin.Context) {
+
+	var chpts []models.Chapter
+
+	if err := C.ShouldBindJSON(&chpts); err != nil {
+		C.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	for _, chp := range chpts {
+		// Lógica de atualização para cada elemento
+		currentTime := time.Now()
+		chp.LastUpdate = &currentTime
+		if err := chp.UpdateChapter(); err != nil {
+			C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+	}
+
+	// chapterTL.chapter.TimelineID = &chapterTL.TimelineID
+	// chapterTL.chapter.Storyline_id = &chapterTL.Storyline_id
+
+	C.JSON(http.StatusOK, chpts)
 
 }
 func CreateConnection(C *gin.Context) {
@@ -554,19 +596,37 @@ func UpdateStoryline(C *gin.Context) {
 	}
 	C.JSON(http.StatusOK, stl)
 }
+func UpdateStorylineList(C *gin.Context) {
+
+	var strl []models.StoryLine
+
+	if err := C.ShouldBindJSON(&strl); err != nil {
+		C.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	for _, str := range strl {
+		if err := str.Update(); err != nil {
+			C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+	}
+
+	C.JSON(http.StatusOK, strl)
+}
 func DeleteTimeline(C *gin.Context) {
-	cnnId := C.Query("id")
+	tlId := C.Query("id")
 
-	var cnn models.Timeline
-	cnn.Id = cnnId
+	var tl models.Timeline
+	tl.Id = tlId
 
-	// err := cnn.Delete()
+	err := tl.Delete()
 
-	// if err != nil {
-	// 	C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-	// 	return
-	// }
-	C.JSON(http.StatusOK, cnn)
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	C.JSON(http.StatusOK, tl)
 }
 func DeleteStoryline(C *gin.Context) {
 	stlId := C.Query("id")

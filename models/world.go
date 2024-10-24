@@ -21,7 +21,7 @@ type Env struct {
 	Events      []Event      `json:"events"`
 	Connections []Connection `json:"connections"`
 	Timelines   []Timeline   `json:"timelines"`
-	Pappers     []Papper     `json:"pappers"`
+	Papers      []Paper      `json:"papers"`
 	StoryLines  []StoryLine  `json:"storyLines"`
 }
 
@@ -53,22 +53,22 @@ func (rp *World) Save() error {
 	return nil
 }
 
-// Obtém a lista de pappers associados ao Worlds
-func (rp *World) GetPapperList() ([]Papper, error) {
-	query := "SELECT id, name, description, created_at FROM pappers WHERE world_id = $1"
+// Obtém a lista de Papers associados ao Worlds
+func (rp *World) GetPaperList() ([]Paper, error) {
+	query := "SELECT id, name, description, created_at FROM Papers WHERE world_id = $1"
 	rows, err := db.DB.Query(query, rp.Id)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var list []Papper
+	var list []Paper
 	for rows.Next() {
-		var papper Papper
-		if err := rows.Scan(&papper.ID, &papper.Name, &papper.Description, &papper.Created_at); err != nil {
+		var paper Paper
+		if err := rows.Scan(&paper.ID, &paper.Name, &paper.Description, &paper.Created_at); err != nil {
 			return nil, err
 		}
-		list = append(list, papper)
+		list = append(list, paper)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -95,7 +95,7 @@ func (rp *World) GetWorldData() (Env, error) {
 		return env, err
 	}
 
-	pappers, err := GetPapperListByWorldId(rp.Id)
+	Papers, err := GetPaperListByWorldId(rp.Id)
 	if err != nil {
 		return env, err
 	}
@@ -114,7 +114,7 @@ func (rp *World) GetWorldData() (Env, error) {
 	env.Connections = connections
 	env.Events = events
 	env.Timelines = timelines
-	env.Pappers = pappers
+	env.Papers = Papers
 	env.StoryLines = storyLines
 	return env, nil
 }

@@ -48,7 +48,7 @@ func createTables(db *sql.DB) {
 			FOREIGN KEY(user_id) REFERENCES users(id)
 		);`,
 
-		`CREATE TABLE IF NOT EXISTS pappers (
+		`CREATE TABLE IF NOT EXISTS Papers (
 			id TEXT PRIMARY KEY,
 			name TEXT NOT NULL,
 			description TEXT,
@@ -84,14 +84,14 @@ func createTables(db *sql.DB) {
 			name TEXT NOT NULL,
 			description TEXT,
 			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			papper_id TEXT,
+			Paper_id TEXT,
 			world_id TEXT,
 			storyline_id TEXT,
 			event_id TEXT,
 			"order" integer,
 			last_update DATE, 
 			update TEXT,
-			FOREIGN KEY (papper_id) REFERENCES pappers(id),
+			FOREIGN KEY (Paper_id) REFERENCES Papers(id),
 			FOREIGN KEY (world_id) REFERENCES worlds(id),
 			FOREIGN KEY (storyline_id) REFERENCES storyLines(id) ON DELETE SET NULL,
 			FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE SET NULL

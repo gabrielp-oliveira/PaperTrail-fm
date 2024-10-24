@@ -185,11 +185,11 @@ func CreateReadmeFile(service *drive.Service, parentID, content string) (*drive.
 	return createdFile, nil
 }
 
-func CreateChapter(service *drive.Service, name, papperId, userEmail string) (string, error) {
+func CreateChapter(service *drive.Service, name, PaperId, userEmail string) (string, error) {
 	folder := &drive.File{
 		Name:     name,
 		MimeType: "application/vnd.google-apps.folder",
-		Parents:  []string{papperId},
+		Parents:  []string{PaperId},
 	}
 	createdFolder, err := service.Files.Create(folder).Do()
 	if err != nil {

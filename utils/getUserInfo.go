@@ -21,20 +21,20 @@ func GetUserInfo(context *gin.Context) (models.User, error) {
 
 	return userInfo, nil
 }
-func GetPapperInfo(context *gin.Context) (models.Papper, error) {
+func GetPaperInfo(context *gin.Context) (models.Paper, error) {
 
-	papperData, exists := context.Get("papper")
+	PaperData, exists := context.Get("paper")
 	if !exists {
-		return models.Papper{}, errors.New("Unable to retrieve papper information")
+		return models.Paper{}, errors.New("Unable to retrieve paper information")
 
 	}
 
 	// Fazer o cast para o tipo correto
-	papper, ok := papperData.(models.Papper)
+	paper, ok := PaperData.(models.Paper)
 	if !ok {
-		return models.Papper{}, errors.New("Unable to retrieve Papper information")
+		return models.Paper{}, errors.New("Unable to retrieve Paper information")
 
 	}
-	return papper, nil
+	return paper, nil
 
 }

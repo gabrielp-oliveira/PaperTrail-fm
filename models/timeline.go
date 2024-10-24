@@ -15,7 +15,6 @@ type Timeline struct {
 	WorldsID    string `json:"world_id"`
 	Order       int    `json:"order"`
 	Range       int    `json:"range"`
-	LeftGap     int    `json:"leftgap"`
 }
 
 func (t *Timeline) Save() error {
@@ -34,7 +33,7 @@ func (t *Timeline) Save() error {
 		// Se não há linhas (Timeline não existe), insere um novo registro
 
 		var maxOrder *int
-		orderQuery := `SELECT MAX("order") FROM timelined WHERE world_id = $1 `
+		orderQuery := `SELECT MAX("order") FROM timelines WHERE world_id = $1 `
 		err = db.DB.QueryRow(orderQuery, t.WorldsID).Scan(&maxOrder)
 		if err != nil {
 			return fmt.Errorf("error getting max order: %v", err)
@@ -48,11 +47,10 @@ func (t *Timeline) Save() error {
 		}
 
 		t.Order = newOrder
-		t.LeftGap = 0
 		insertQuery := `
-		INSERT INTO timelines(id, name, description, range, world_id, "order", leftgap) 
+		INSERT INTO timelines(id, name, description, range, world_id, "order") 
 		VALUES ($1, $2, $3, $4, $5, $6)`
-		_, err := db.DB.Exec(insertQuery, t.Id, t.Name, t.Description, t.Range, t.WorldsID, t.Order, t.LeftGap)
+		_, err := db.DB.Exec(insertQuery, t.Id, t.Name, t.Description, t.Range, t.WorldsID, t.Order)
 		if err != nil {
 			return fmt.Errorf("error inserting Timeline: %v", err)
 		}
@@ -68,9 +66,9 @@ func (t *Timeline) Save() error {
 func GetTimelinesByWorldId(worldId string) ([]Timeline, error) {
 	timelines := []Timeline{}
 	timelinesQuery := `
-		SELECT id, name, world_id, range, "order", description, leftgap
+		SELECT id, name, world_id, range, "order", description
 		FROM timelines
-		WHERE world_id = $1
+		WHERE world_id = $1 ORDER BY "order"
 	`
 	rows, err := db.DB.Query(timelinesQuery, worldId)
 	if err != nil {
@@ -80,7 +78,7 @@ func GetTimelinesByWorldId(worldId string) ([]Timeline, error) {
 
 	for rows.Next() {
 		var timeline Timeline
-		if err := rows.Scan(&timeline.Id, &timeline.Name, &timeline.WorldsID, &timeline.Range, &timeline.Order, &timeline.Description, &timeline.LeftGap); err != nil {
+		if err := rows.Scan(&timeline.Id, &timeline.Name, &timeline.WorldsID, &timeline.Range, &timeline.Order, &timeline.Description); err != nil {
 			return nil, err
 		}
 		timelines = append(timelines, timeline)
@@ -114,7 +112,7 @@ func (t Timeline) CreateBasicTimelines(wiD string) ([]Timeline, error) {
 	tmLine1.Description = "start time line"
 	tmLine1.WorldsID = wiD
 	tmLine1.Order = 1
-	tmLine1.Range = 5
+	tmLine1.Range = 10
 
 	id := uuid.New().String()
 
@@ -130,7 +128,7 @@ func (t Timeline) CreateBasicTimelines(wiD string) ([]Timeline, error) {
 	tmLine2.Description = "Seccondary time line"
 	tmLine2.WorldsID = wiD
 	tmLine2.Order = 2
-	tmLine2.Range = 5
+	tmLine2.Range = 10
 	id = uuid.New().String()
 	tmLine2.Id = id
 	err = tmLine2.Save()
@@ -143,7 +141,7 @@ func (t Timeline) CreateBasicTimelines(wiD string) ([]Timeline, error) {
 	tmLine3.Description = "third time line"
 	tmLine3.WorldsID = wiD
 	tmLine3.Order = 3
-	tmLine3.Range = 5
+	tmLine3.Range = 10
 	id = uuid.New().String()
 
 	tmLine3.Id = id
@@ -157,7 +155,7 @@ func (t Timeline) CreateBasicTimelines(wiD string) ([]Timeline, error) {
 	tmLine4.Description = "fourth time line"
 	tmLine4.WorldsID = wiD
 	tmLine4.Order = 4
-	tmLine4.Range = 5
+	tmLine4.Range = 10
 
 	id = uuid.New().String()
 
@@ -172,7 +170,7 @@ func (t Timeline) CreateBasicTimelines(wiD string) ([]Timeline, error) {
 	tmLine5.Description = "fifth time line"
 	tmLine5.WorldsID = wiD
 	tmLine5.Order = 5
-	tmLine5.Range = 5
+	tmLine5.Range = 10
 
 	id = uuid.New().String()
 
@@ -191,8 +189,7 @@ func (t *Timeline) Update() error {
 
 	query := `
 	UPDATE timelines
-	SET name = $1, description = $2,range= $3, "order" = $4, leftgap = $5
-	WHERE id = $6
+	SET name = $1, description = $2,range= $3, "order" = $4	WHERE id = $5
 	`
 	stmt, err := db.DB.Prepare(query)
 
@@ -202,6 +199,6 @@ func (t *Timeline) Update() error {
 
 	defer stmt.Close()
 
-	_, err = stmt.Exec(t.Name, t.Description, t.Range, t.Order, t.LeftGap, t.Id)
+	_, err = stmt.Exec(t.Name, t.Description, t.Range, t.Order, t.Id)
 	return err
 }

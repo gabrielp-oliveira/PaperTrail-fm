@@ -9,7 +9,7 @@ import (
 	"google.golang.org/api/drive/v3"
 )
 
-type Papper struct {
+type Paper struct {
 	ID          string    `json:"id"`
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
@@ -19,21 +19,21 @@ type Papper struct {
 	Order       int       `json:"order,omitempty"` // Use ponteiro para lidar com valores nulos
 }
 
-func (e *Papper) Save() error {
-	var papperId int
+func (e *Paper) Save() error {
+	var PaperId int
 
-	// Verifica se o papper já existe no banco de dados
-	query := `SELECT id FROM pappers WHERE name = $1 AND world_id = $2`
-	err := db.DB.QueryRow(query, e.Name, e.World_id).Scan(&papperId)
+	// Verifica se o paper já existe no banco de dados
+	query := `SELECT id FROM Papers WHERE name = $1 AND world_id = $2`
+	err := db.DB.QueryRow(query, e.Name, e.World_id).Scan(&PaperId)
 
 	if err != nil && err != sql.ErrNoRows {
 		// Se ocorrer um erro diferente de "sem linhas encontradas", retorna o erro
-		return fmt.Errorf("error checking papper existence: %v", err)
+		return fmt.Errorf("error checking paper existence: %v", err)
 	}
 
 	if err == sql.ErrNoRows {
 		var maxOrder *int
-		orderQuery := `SELECT MAX("order") FROM pappers WHERE world_id = $1`
+		orderQuery := `SELECT MAX("order") FROM Papers WHERE world_id = $1`
 		err := db.DB.QueryRow(orderQuery, e.World_id).Scan(&maxOrder)
 		if err != nil {
 			return fmt.Errorf("error getting max order: %v", err)
@@ -46,61 +46,61 @@ func (e *Papper) Save() error {
 
 		e.Order = newOrder
 		insertQuery := `
-		INSERT INTO pappers(id, name, description, path, created_at, world_id, "order") 
+		INSERT INTO Papers(id, name, description, path, created_at, world_id, "order") 
 		VALUES ($1, $2, $3, $4, $5, $6, $7)`
 		_, err = db.DB.Exec(insertQuery, e.ID, e.Name, e.Description, e.Path, e.Created_at, e.World_id, newOrder)
 		if err != nil {
-			return fmt.Errorf("error inserting papper: %v", err)
+			return fmt.Errorf("error inserting paper: %v", err)
 		}
 
-		fmt.Println("Inserted new papper into database")
+		fmt.Println("Inserted new paper into database")
 	} else {
-		fmt.Println("Papper already exists in database")
+		fmt.Println("Paper already exists in database")
 	}
 
 	return nil
 }
 
-func GetAllPappers() ([]Papper, error) {
-	query := "SELECT * FROM pappers"
+func GetAllPapers() ([]Paper, error) {
+	query := "SELECT * FROM Papers"
 	rows, err := db.DB.Query(query)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var pappers []Papper
+	var Papers []Paper
 
 	for rows.Next() {
-		var papper Papper
-		err := rows.Scan(&papper.ID, &papper.Name, &papper.Description, &papper.Path, &papper.Created_at, &papper.World_id)
+		var paper Paper
+		err := rows.Scan(&paper.ID, &paper.Name, &paper.Description, &paper.Path, &paper.Created_at, &paper.World_id)
 
 		if err != nil {
 			return nil, err
 		}
 
-		pappers = append(pappers, papper)
+		Papers = append(Papers, paper)
 	}
 
-	return pappers, nil
+	return Papers, nil
 }
 
-func GetPapperByID(id int64) (*Papper, error) {
-	query := "SELECT * FROM pappers WHERE id = ?"
+func GetPaperByID(id int64) (*Paper, error) {
+	query := "SELECT * FROM Papers WHERE id = ?"
 	row := db.DB.QueryRow(query, id)
 
-	var papper Papper
-	err := row.Scan(&papper.ID, &papper.Name, &papper.Description, &papper.Path, &papper.Created_at, &papper.World_id)
+	var paper Paper
+	err := row.Scan(&paper.ID, &paper.Name, &paper.Description, &paper.Path, &paper.Created_at, &paper.World_id)
 	if err != nil {
 		return nil, err
 	}
 
-	return &papper, nil
+	return &paper, nil
 }
 
-func (papper *Papper) Update() error {
+func (paper *Paper) Update() error {
 	query := `
-	UPDATE pappers
+	UPDATE Papers
 	SET name = $1, description = $2, "order" = $3
 	WHERE id = $4
 	`
@@ -112,12 +112,12 @@ func (papper *Papper) Update() error {
 
 	defer stmt.Close()
 
-	_, err = stmt.Exec(papper.Name, papper.Description, papper.Order, papper.ID)
+	_, err = stmt.Exec(paper.Name, paper.Description, paper.Order, paper.ID)
 	return err
 }
 
-func (papper *Papper) Delete() error {
-	query := "DELETE FROM pappers WHERE id = ?"
+func (paper *Paper) Delete() error {
+	query := "DELETE FROM Papers WHERE id = ?"
 	stmt, err := db.DB.Prepare(query)
 
 	if err != nil {
@@ -126,7 +126,7 @@ func (papper *Papper) Delete() error {
 
 	defer stmt.Close()
 
-	_, err = stmt.Exec(papper.ID)
+	_, err = stmt.Exec(paper.ID)
 	return err
 }
 
@@ -142,9 +142,9 @@ type revision struct {
 	ModifiedTime string
 }
 
-func (papper *Papper) GetChapterList(driver *drive.Service, userAccessToken string) ([]chapterWithRevisions, error) {
-	query := `SELECT id, name, description, created_at, Papper_id, "order" FROM chapters WHERE papper_id = $1`
-	rows, err := db.DB.Query(query, papper.ID)
+func (paper *Paper) GetChapterList(driver *drive.Service, userAccessToken string) ([]chapterWithRevisions, error) {
+	query := `SELECT id, name, description, created_at, Paper_id, "order" FROM chapters WHERE Paper_id = $1`
+	rows, err := db.DB.Query(query, paper.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -153,7 +153,7 @@ func (papper *Papper) GetChapterList(driver *drive.Service, userAccessToken stri
 	var list []chapterWithRevisions
 	for rows.Next() {
 		var chapter chapterWithRevisions
-		if err := rows.Scan(&chapter.Id, &chapter.Name, &chapter.Description, &chapter.CreatedAt, &chapter.PapperID, &chapter.Order); err != nil {
+		if err := rows.Scan(&chapter.Id, &chapter.Name, &chapter.Description, &chapter.CreatedAt, &chapter.PaperID, &chapter.Order); err != nil {
 			return nil, err
 		}
 		revisions, _ := driver.Revisions.List(chapter.Id).Do()
@@ -179,41 +179,41 @@ func GenerateSecureIframeURL(fileID, token string) string {
 	return fmt.Sprintf("https://docs.google.com/document/d/%s/edit?access_token=%s", fileID, token)
 }
 
-func (papper *Papper) Get() error {
-	query := `SELECT id, name, description, created_at, world_id, "order" FROM pappers WHERE id = $1`
-	row := db.DB.QueryRow(query, papper.ID)
+func (paper *Paper) Get() error {
+	query := `SELECT id, name, description, created_at, world_id, "order" FROM Papers WHERE id = $1`
+	row := db.DB.QueryRow(query, paper.ID)
 
-	err := row.Scan(&papper.ID, &papper.Name, &papper.Description, &papper.Created_at, &papper.World_id, &papper.Order)
+	err := row.Scan(&paper.ID, &paper.Name, &paper.Description, &paper.Created_at, &paper.World_id, &paper.Order)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return fmt.Errorf("no papper found with id %s", papper.ID)
+			return fmt.Errorf("no paper found with id %s", paper.ID)
 		}
-		return fmt.Errorf("error retrieving papper: %v", err)
+		return fmt.Errorf("error retrieving paper: %v", err)
 	}
 	return nil
 }
 
-func GetPapperListByWorldId(worldId string) ([]Papper, error) {
-	pappers := []Papper{}
+func GetPaperListByWorldId(worldId string) ([]Paper, error) {
+	Papers := []Paper{}
 
-	papperQuery := `
+	PaperQuery := `
 	SELECT id, name, description, created_at, "order"
-	FROM pappers
+	FROM Papers
 	WHERE world_id = $1
 	`
-	rows, err := db.DB.Query(papperQuery, worldId)
+	rows, err := db.DB.Query(PaperQuery, worldId)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
 	for rows.Next() {
-		var papper Papper
-		if err := rows.Scan(&papper.ID, &papper.Name, &papper.Description, &papper.Created_at, &papper.Order); err != nil {
+		var paper Paper
+		if err := rows.Scan(&paper.ID, &paper.Name, &paper.Description, &paper.Created_at, &paper.Order); err != nil {
 			return nil, err
 		}
 
-		pappers = append(pappers, papper)
+		Papers = append(Papers, paper)
 	}
-	return pappers, err
+	return Papers, err
 }

@@ -20,21 +20,21 @@ func WorldInfo(C *gin.Context) {
 	}
 
 	world_id := C.Query("world_id")
-	var papper models.Papper
+	var paper models.Paper
 
 	if world_id != "" {
-		papper.World_id = world_id
+		paper.World_id = world_id
 	} else {
-		C.ShouldBindJSON(&papper)
+		C.ShouldBindJSON(&paper)
 	}
-	world, err := World(userInfo.ID, papper.World_id)
+	world, err := World(userInfo.ID, paper.World_id)
 
 	if err == sql.ErrNoRows {
 		C.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "world  not found in google drive. " + err.Error()})
 		return
 	}
 	C.Set("world", world)
-	C.Set("papper", papper)
+	C.Set("paper", paper)
 
 	C.Next()
 }
@@ -54,7 +54,7 @@ func World(userId, worldsId string) (models.World, error) {
 	return worlds, nil
 }
 
-func PapperInfo(C *gin.Context) {
+func PaperInfo(C *gin.Context) {
 	userInfo, err := utils.GetUserInfo(C)
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting User info. " + err.Error()})
@@ -66,21 +66,21 @@ func PapperInfo(C *gin.Context) {
 
 	worldInfo, err := World(userInfo.ID, Chapter.WorldsID)
 	if err != nil {
-		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting Root papper info. " + err.Error()})
+		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting Root paper info. " + err.Error()})
 		return
 	}
 
-	query := `SELECT name, id, description, path, created_at, world_id, "order" FROM pappers WHERE id = $1`
-	row := db.DB.QueryRow(query, worldInfo.Id, Chapter.PapperID)
-	var papper models.Papper
-	err = row.Scan(&papper.Name, &papper.ID, &papper.Description, &papper.Path, &papper.Created_at, &papper.World_id, &papper.Order)
+	query := `SELECT name, id, description, path, created_at, world_id, "order" FROM Papers WHERE id = $1`
+	row := db.DB.QueryRow(query, worldInfo.Id, Chapter.PaperID)
+	var paper models.Paper
+	err = row.Scan(&paper.Name, &paper.ID, &paper.Description, &paper.Path, &paper.Created_at, &paper.World_id, &paper.Order)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			fmt.Errorf("papper not found.")
+			fmt.Errorf("paper not found.")
 		}
 	}
 
-	C.Set("papper", papper)
+	C.Set("paper", paper)
 	C.Set("chapter", Chapter)
 
 	C.Next()
@@ -97,7 +97,7 @@ func StorylineInfo(C *gin.Context) {
 
 	worldInfo, err := World(userInfo.ID, stl.WorldsID)
 	if err != nil {
-		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting Root papper info. " + err.Error()})
+		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting Root paper info. " + err.Error()})
 		return
 	}
 
@@ -107,7 +107,7 @@ func StorylineInfo(C *gin.Context) {
 	err = row.Scan(&stl.Name, &stl.Description, &stl.Created_at, &stl.WorldsID, &stl.Order)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			fmt.Errorf("papper not found.")
+			fmt.Errorf("paper not found.")
 		}
 	}
 
@@ -128,17 +128,16 @@ func TimelineInfo(C *gin.Context) {
 
 	worldInfo, err := World(userInfo.ID, tl.WorldsID)
 	if err != nil {
-		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting Root papper info. " + err.Error()})
-		return
+		fmt.Errorf("Error getting Root paper info. " + err.Error())
 	}
 
-	query := "SELECT id, name, description, range, worldsId, 'order' FROM Timelines WHERE id = $1"
+	query := `SELECT id, name, description, range, worldsId, 'order' FROM Timelines WHERE id = $1 ORDER BY "order"`
 	row := db.DB.QueryRow(query, tl.Id)
 
 	err = row.Scan(&tl.Id, &tl.Name, &tl.Description, &tl.Range, &tl.WorldsID, &tl.Order)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			fmt.Errorf("papper not found.")
+			fmt.Errorf("paper not found.")
 		}
 	}
 

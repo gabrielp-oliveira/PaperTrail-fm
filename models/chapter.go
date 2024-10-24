@@ -14,7 +14,7 @@ type Chapter struct {
 	Name         string     `json:"name"`
 	Description  string     `json:"description"`
 	CreatedAt    time.Time  `json:"created_at"`
-	PapperID     string     `json:"papper_id"`
+	PaperID      string     `json:"paper_id"`
 	EventID      *string    `json:"event_id"`
 	TimelineID   *string    `json:"timeline_id"`
 	Storyline_id *string    `json:"storyline_id"`
@@ -41,8 +41,8 @@ func (c *Chapter) Save() error {
 		// Se não há linhas (capítulo não existe), insere um novo registro
 
 		var maxOrder *int
-		orderQuery := `SELECT MAX("order") FROM chapters WHERE world_id = $1 and papper_id = $2`
-		err := db.DB.QueryRow(orderQuery, c.WorldsID, c.PapperID).Scan(&maxOrder)
+		orderQuery := `SELECT MAX("order") FROM chapters WHERE world_id = $1 and Paper_id = $2`
+		err := db.DB.QueryRow(orderQuery, c.WorldsID, c.PaperID).Scan(&maxOrder)
 		if err != nil {
 			return fmt.Errorf("error getting max order: %v", err)
 		}
@@ -56,9 +56,9 @@ func (c *Chapter) Save() error {
 		}
 
 		insertQuery := `
-		INSERT INTO chapters(id, name, description, created_at, papper_id, world_id, event_id, timeline_id, "order") 
+		INSERT INTO chapters(id, name, description, created_at, Paper_id, world_id, event_id, timeline_id, "order") 
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`
-		_, err = db.DB.Exec(insertQuery, c.Id, c.Name, c.Description, c.CreatedAt, c.PapperID, c.WorldsID, c.EventID, c.TimelineID, newOrder)
+		_, err = db.DB.Exec(insertQuery, c.Id, c.Name, c.Description, c.CreatedAt, c.PaperID, c.WorldsID, c.EventID, c.TimelineID, newOrder)
 		if err != nil {
 			return fmt.Errorf("error inserting chapter: %v", err)
 		}
@@ -72,11 +72,11 @@ func (c *Chapter) Save() error {
 }
 
 func GetChapterByID(id string) (*Chapter, error) {
-	query := "SELECT id, name, description, created_at, papper_id, world_id, event_id, timeline_id FROM chapters WHERE id = $1"
+	query := "SELECT id, name, description, created_at, Paper_id, world_id, event_id, timeline_id FROM chapters WHERE id = $1"
 	row := db.DB.QueryRow(query, id)
 
 	var chapter Chapter
-	err := row.Scan(&chapter.Id, &chapter.Name, &chapter.Description, &chapter.CreatedAt, &chapter.PapperID, &chapter.WorldsID, &chapter.EventID, &chapter.TimelineID)
+	err := row.Scan(&chapter.Id, &chapter.Name, &chapter.Description, &chapter.CreatedAt, &chapter.PaperID, &chapter.WorldsID, &chapter.EventID, &chapter.TimelineID)
 	if err != nil {
 		return nil, err
 	}
@@ -107,10 +107,10 @@ func (c *Chapter) RemoveEvent() error {
 }
 
 func (c *Chapter) Get() error {
-	query := `SELECT id, name, description, created_at, papper_id, world_id, event_id, timeline_id, update, "order", last_update FROM chapters WHERE id = $1`
+	query := `SELECT id, name, description, created_at, Paper_id, world_id, event_id, timeline_id, update, "order", last_update FROM chapters WHERE id = $1`
 	row := db.DB.QueryRow(query, c.Id)
 
-	err := row.Scan(&c.Id, &c.Name, &c.Description, &c.CreatedAt, &c.PapperID, &c.WorldsID, &c.EventID, &c.TimelineID, &c.Update, &c.Order, &c.LastUpdate)
+	err := row.Scan(&c.Id, &c.Name, &c.Description, &c.CreatedAt, &c.PaperID, &c.WorldsID, &c.EventID, &c.TimelineID, &c.Update, &c.Order, &c.LastUpdate)
 	if err != nil {
 		return err
 	}
@@ -151,6 +151,16 @@ func (c *Chapter) UpdateChapter() error {
 	}
 
 	defer stmt.Close()
+
+	if c.TimelineID != nil && *c.TimelineID == "" {
+		c.TimelineID = nil
+	}
+	if c.Storyline_id != nil && *c.Storyline_id == "" {
+		c.Storyline_id = nil
+	}
+	if c.EventID != nil && *c.EventID == "" {
+		c.EventID = nil
+	}
 
 	_, err = stmt.Exec(c.Name, c.Description, c.Order, c.Update, c.LastUpdate, c.Storyline_id, c.TimelineID, c.Id)
 	return err

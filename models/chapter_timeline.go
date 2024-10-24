@@ -138,7 +138,7 @@ func GetChapteJoinTimelineByWorldId(worldId string) ([]Chapter, error) {
 
 	chaptersQuery := `
     SELECT c.id, c.name, c.description, 
-        c.created_at, c.papper_id, c.world_id, 
+        c.created_at, c.Paper_id, c.world_id, 
         c.event_id, c.storyline_id, c.timeline_id, c.order,
         ct.range
     FROM chapters c
@@ -157,7 +157,7 @@ func GetChapteJoinTimelineByWorldId(worldId string) ([]Chapter, error) {
 
 		// Faz o Scan para capturar os campos da tabela chapters e chapter_timeline
 		if err := rows.Scan(&chapter.Id, &chapter.Name, &chapter.Description, &chapter.CreatedAt,
-			&chapter.PapperID, &chapter.WorldsID, &chapter.EventID, &chapter.Storyline_id, &chapter.TimelineID, &chapter.Order, &chapterRange); err != nil {
+			&chapter.PaperID, &chapter.WorldsID, &chapter.EventID, &chapter.Storyline_id, &chapter.TimelineID, &chapter.Order, &chapterRange); err != nil {
 			return nil, err
 		}
 
