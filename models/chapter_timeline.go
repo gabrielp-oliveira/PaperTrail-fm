@@ -22,7 +22,7 @@ type ChapterTl struct {
 	TimelineID   string `json:"timeline_id"`
 	Storyline_id string `json:"storyline_id"`
 	Order        int    `json:"order"`
-	EventID      string `json:"event_id"`
+	Event_Id     string `json:"event_id"`
 }
 
 func (t *ChapterTimeline) Save() error {
@@ -137,13 +137,12 @@ func GetChapteJoinTimelineByWorldId(worldId string) ([]Chapter, error) {
 	chapters := []Chapter{}
 
 	chaptersQuery := `
-    SELECT c.id, c.name, c.description, 
-        c.created_at, c.Paper_id, c.world_id, 
-        c.event_id, c.storyline_id, c.timeline_id, c.order,
-        ct.range
-    FROM chapters c
-    LEFT JOIN chapter_timeline ct ON c.id = ct.chapter_id
-    WHERE c.world_id = $1
+    SELECT id, name, description, 
+        created_at, Paper_id, world_id, 
+        event_id, storyline_id, timeline_id, "order",
+        range
+    FROM chapters
+    WHERE world_id = $1
 `
 	rows, err := db.DB.Query(chaptersQuery, worldId)
 	if err != nil {
@@ -157,7 +156,7 @@ func GetChapteJoinTimelineByWorldId(worldId string) ([]Chapter, error) {
 
 		// Faz o Scan para capturar os campos da tabela chapters e chapter_timeline
 		if err := rows.Scan(&chapter.Id, &chapter.Name, &chapter.Description, &chapter.CreatedAt,
-			&chapter.PaperID, &chapter.WorldsID, &chapter.EventID, &chapter.Storyline_id, &chapter.TimelineID, &chapter.Order, &chapterRange); err != nil {
+			&chapter.PaperID, &chapter.WorldsID, &chapter.Event_Id, &chapter.Storyline_id, &chapter.TimelineID, &chapter.Order, &chapter.Range); err != nil {
 			return nil, err
 		}
 

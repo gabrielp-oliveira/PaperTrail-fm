@@ -65,7 +65,7 @@ func createTables(db *sql.DB) {
 			description TEXT,
 			"order" integer,
 			range integer,
-			range_start integer,
+			start_range integer,
 			world_id TEXT NOT NULL,
 			FOREIGN KEY(world_id) REFERENCES worlds(id)
 		);`,
@@ -73,6 +73,7 @@ func createTables(db *sql.DB) {
 		`CREATE TABLE IF NOT EXISTS events (
 			id TEXT PRIMARY KEY,
 			name TEXT NOT NULL,
+			description TEXT,
 			start_range integer NOT NULL,
 			end_range integer NOT NULL,
 			world_id TEXT,
@@ -89,6 +90,7 @@ func createTables(db *sql.DB) {
 			storyline_id TEXT,
 			event_id TEXT,
 			"order" integer,
+			range integer DEFAULT 1,
 			last_update DATE, 
 			update TEXT,
 			FOREIGN KEY (Paper_id) REFERENCES Papers(id),
@@ -116,14 +118,6 @@ func createTables(db *sql.DB) {
 			FOREIGN KEY(source_chapter_id) REFERENCES chapters(id),
 			FOREIGN KEY(target_chapter_id) REFERENCES chapters(id),
 			FOREIGN KEY (world_id) REFERENCES worlds(id)
-		);`,
-		`CREATE TABLE IF NOT EXISTS chapter_timeline (
-			id TEXT PRIMARY KEY,
-			chapter_id TEXT NOT NULL,
-			timeline_id TEXT NOT NULL,
-			range integer NOT NULL,
-			FOREIGN KEY (chapter_id) REFERENCES chapters(id) ON DELETE CASCADE,
-			FOREIGN KEY (timeline_id) REFERENCES timelines(id) ON DELETE CASCADE
 		);`,
 	}
 

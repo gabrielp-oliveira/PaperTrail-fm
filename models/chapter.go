@@ -15,7 +15,7 @@ type Chapter struct {
 	Description  string     `json:"description"`
 	CreatedAt    time.Time  `json:"created_at"`
 	PaperID      string     `json:"paper_id"`
-	EventID      *string    `json:"event_id"`
+	Event_Id     *string    `json:"event_Id"`
 	TimelineID   *string    `json:"timeline_id"`
 	Storyline_id *string    `json:"storyline_id"`
 	Link         string     `json:"link"`
@@ -58,7 +58,7 @@ func (c *Chapter) Save() error {
 		insertQuery := `
 		INSERT INTO chapters(id, name, description, created_at, Paper_id, world_id, event_id, timeline_id, "order") 
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`
-		_, err = db.DB.Exec(insertQuery, c.Id, c.Name, c.Description, c.CreatedAt, c.PaperID, c.WorldsID, c.EventID, c.TimelineID, newOrder)
+		_, err = db.DB.Exec(insertQuery, c.Id, c.Name, c.Description, c.CreatedAt, c.PaperID, c.WorldsID, c.Event_Id, c.TimelineID, newOrder)
 		if err != nil {
 			return fmt.Errorf("error inserting chapter: %v", err)
 		}
@@ -76,7 +76,7 @@ func GetChapterByID(id string) (*Chapter, error) {
 	row := db.DB.QueryRow(query, id)
 
 	var chapter Chapter
-	err := row.Scan(&chapter.Id, &chapter.Name, &chapter.Description, &chapter.CreatedAt, &chapter.PaperID, &chapter.WorldsID, &chapter.EventID, &chapter.TimelineID)
+	err := row.Scan(&chapter.Id, &chapter.Name, &chapter.Description, &chapter.CreatedAt, &chapter.PaperID, &chapter.WorldsID, &chapter.Event_Id, &chapter.TimelineID)
 	if err != nil {
 		return nil, err
 	}
@@ -84,9 +84,9 @@ func GetChapterByID(id string) (*Chapter, error) {
 	return &chapter, nil
 }
 
-func (c *Chapter) AddEvent(eventID string) error {
+func (c *Chapter) AddEvent(Event_Id string) error {
 	query := `UPDATE chapters SET event_id = $1 WHERE id = $2`
-	_, err := db.DB.Exec(query, eventID, c.Id)
+	_, err := db.DB.Exec(query, Event_Id, c.Id)
 	if err != nil {
 		return fmt.Errorf("error adding event to chapter: %v", err)
 	}
@@ -110,7 +110,7 @@ func (c *Chapter) Get() error {
 	query := `SELECT id, name, description, created_at, Paper_id, world_id, event_id, timeline_id, update, "order", last_update FROM chapters WHERE id = $1`
 	row := db.DB.QueryRow(query, c.Id)
 
-	err := row.Scan(&c.Id, &c.Name, &c.Description, &c.CreatedAt, &c.PaperID, &c.WorldsID, &c.EventID, &c.TimelineID, &c.Update, &c.Order, &c.LastUpdate)
+	err := row.Scan(&c.Id, &c.Name, &c.Description, &c.CreatedAt, &c.PaperID, &c.WorldsID, &c.Event_Id, &c.TimelineID, &c.Update, &c.Order, &c.LastUpdate)
 	if err != nil {
 		return err
 	}
@@ -141,8 +141,8 @@ func (c *Chapter) RemoveTimeline() error {
 func (c *Chapter) UpdateChapter() error {
 	query := `
 	UPDATE chapters
-	SET name = $1, description = $2, "order" = $3, update = $4, last_update = $5, storyline_id = $6, timeline_id = $7
-	WHERE id = $8
+	SET name = $1, description = $2, "order" = $3, update = $4, last_update = $5, storyline_id = $6, timeline_id = $7, event_id = $8, range = $9
+	WHERE id = $10
 	`
 	stmt, err := db.DB.Prepare(query)
 
@@ -158,10 +158,10 @@ func (c *Chapter) UpdateChapter() error {
 	if c.Storyline_id != nil && *c.Storyline_id == "" {
 		c.Storyline_id = nil
 	}
-	if c.EventID != nil && *c.EventID == "" {
-		c.EventID = nil
+	if c.Event_Id != nil && *c.Event_Id == "" {
+		c.Event_Id = nil
 	}
 
-	_, err = stmt.Exec(c.Name, c.Description, c.Order, c.Update, c.LastUpdate, c.Storyline_id, c.TimelineID, c.Id)
+	_, err = stmt.Exec(c.Name, c.Description, c.Order, c.Update, c.LastUpdate, c.Storyline_id, c.TimelineID, c.Event_Id, c.Range, c.Id)
 	return err
 }

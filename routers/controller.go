@@ -147,7 +147,7 @@ func CreatePaper(C *gin.Context) {
 	chapter.Id = chapterId
 
 	chapter.TimelineID = nil
-	chapter.EventID = nil
+	chapter.Event_Id = nil
 
 	err = chapter.Save()
 	if err != nil {
@@ -165,6 +165,22 @@ func CreatePaper(C *gin.Context) {
 	}
 	response.Chapter = append(response.Chapter, chapter)
 	C.JSON(http.StatusOK, response)
+}
+func CreateEvent(C *gin.Context) {
+
+	var event models.Event
+
+	if err := C.ShouldBindJSON(&event); err != nil {
+		C.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	err := event.Save()
+	if err != nil {
+		C.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	C.JSON(http.StatusOK, event)
 }
 
 func CreateChapter(C *gin.Context) {
@@ -367,42 +383,27 @@ func InsertEvent(C *gin.Context) {
 
 }
 func RemoveEvent(C *gin.Context) {
-	worlds, err := utils.GetWorldsInfo(C)
-	if err != nil {
-		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
 
-	event, err := utils.GetContextInfo[models.Event](C, "event")
-	if err != nil {
-		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	if event.Id == "" {
+	eventId := C.Query("id")
+
+	var evt models.Event
+	evt.Id = eventId
+
+	if evt.Id == "" {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": "event id is empty."})
 		return
 	}
 
-	err = event.Delete()
+	err := evt.Delete()
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	environment, err := worlds.GetWorldData()
-	if err != nil {
-		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	C.JSON(http.StatusOK, environment)
+
+	C.JSON(http.StatusOK, evt.Id)
 
 }
 func UpdateEvent(C *gin.Context) {
-	worlds, err := utils.GetWorldsInfo(C)
-	if err != nil {
-		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
 	event, err := utils.GetContextInfo[models.Event](C, "event")
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -414,12 +415,7 @@ func UpdateEvent(C *gin.Context) {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	environment, err := worlds.GetWorldData()
-	if err != nil {
-		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	C.JSON(http.StatusOK, environment)
+	C.JSON(http.StatusOK, event)
 
 }
 func UpdatePaper(C *gin.Context) {
@@ -475,16 +471,16 @@ func UpdateChapter(C *gin.Context) {
 		return
 	}
 
-	var chapterTimeline models.ChapterTimeline
-	chapterTimeline.Chapter_Id = &chapter.Id
-	chapterTimeline.TimelineID = chapter.TimelineID
-	chapterTimeline.Range = chapter.Range
+	// var chapterTimeline models.ChapterTimeline
+	// chapterTimeline.Chapter_Id = &chapter.Id
+	// chapterTimeline.TimelineID = chapter.TimelineID
+	// chapterTimeline.Range = chapter.Range
 
-	err = chapterTimeline.Update()
-	if err != nil {
-		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
+	// err = chapterTimeline.Update()
+	// if err != nil {
+	// 	C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	// 	return
+	// }
 	C.JSON(http.StatusOK, chapter)
 
 }
@@ -580,6 +576,24 @@ func UpdateTimeline(C *gin.Context) {
 	}
 	C.JSON(http.StatusOK, tl)
 }
+func UpdateTimelineList(C *gin.Context) {
+
+	var tls []models.Timeline
+
+	if err := C.ShouldBindJSON(&tls); err != nil {
+		C.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	for _, str := range tls {
+		if err := str.Update(); err != nil {
+			C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+	}
+
+	C.JSON(http.StatusOK, tls)
+}
 
 func UpdateStoryline(C *gin.Context) {
 
@@ -631,16 +645,30 @@ func DeleteTimeline(C *gin.Context) {
 func DeleteStoryline(C *gin.Context) {
 	stlId := C.Query("id")
 
+	worlds, err := utils.GetWorldsInfo(C)
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
 	var stl models.StoryLine
 	stl.Id = stlId
 
-	err := stl.Delete()
+	err = stl.Delete()
 
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	C.JSON(http.StatusOK, stl)
+
+	environment, err := worlds.GetWorldData()
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	C.JSON(http.StatusOK, environment)
+
 }
 func RemoveConnection(C *gin.Context) {
 

@@ -95,7 +95,7 @@ func StorylineInfo(C *gin.Context) {
 	var stl models.StoryLine
 	C.ShouldBindJSON(&stl)
 
-	worldInfo, err := World(userInfo.ID, stl.WorldsID)
+	worldInfo, err := World(userInfo.ID, stl.WorldID)
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting Root paper info. " + err.Error()})
 		return
@@ -104,7 +104,7 @@ func StorylineInfo(C *gin.Context) {
 	query := "SELECT name, description, created_at, worldsId, 'order' FROM storyLines WHERE id = $1"
 	row := db.DB.QueryRow(query, stl.Id)
 
-	err = row.Scan(&stl.Name, &stl.Description, &stl.Created_at, &stl.WorldsID, &stl.Order)
+	err = row.Scan(&stl.Name, &stl.Description, &stl.Created_at, &stl.WorldID, &stl.Order)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			fmt.Errorf("paper not found.")
