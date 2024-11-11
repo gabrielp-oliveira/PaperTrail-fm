@@ -90,6 +90,23 @@ func CreateWorld(C *gin.Context) {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error saving time lines.  " + err.Error()})
 		return
 	}
+
+	ssId := uuid.New().String()
+	var settings models.Subway_settings
+	settings.Id = ssId
+	settings.World_id = world.Id
+	settings.Chapter_names = false
+	settings.Zomm = 1
+	settings.X = 1
+	settings.Y = 1
+	settings.Display_table_chapters = false
+
+	err = settings.Save()
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating basic settings for world.  " + err.Error()})
+		return
+	}
+
 	C.JSON(http.StatusOK, gin.H{"message": world.Name + " folder created successfully."})
 }
 
@@ -183,6 +200,22 @@ func CreateEvent(C *gin.Context) {
 	C.JSON(http.StatusOK, event)
 }
 
+func GetWorldChapters(C *gin.Context) {
+
+	worlds, err := utils.GetWorldsInfo(C)
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	chapters, err := worlds.GetWorldChapters()
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	}
+
+	C.JSON(http.StatusOK, chapters)
+
+}
 func CreateChapter(C *gin.Context) {
 
 	chapter, err := utils.GetContextInfo[models.Chapter](C, "chapter")
@@ -430,6 +463,21 @@ func UpdatePaper(C *gin.Context) {
 		return
 	}
 	C.JSON(http.StatusOK, paper)
+
+}
+func updateSettings(C *gin.Context) {
+	var ss models.Subway_settings // Suponha que `Element` é a estrutura de seus elementos
+
+	if err := C.ShouldBindJSON(&ss); err != nil {
+		C.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	err := ss.Update()
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	C.JSON(http.StatusOK, ss)
 
 }
 func UpdatePaperList(C *gin.Context) {

@@ -119,6 +119,20 @@ func createTables(db *sql.DB) {
 			FOREIGN KEY(target_chapter_id) REFERENCES chapters(id),
 			FOREIGN KEY (world_id) REFERENCES worlds(id)
 		);`,
+		`CREATE TABLE IF NOT EXISTS subway_settings (
+			id TEXT PRIMARY KEY,
+			chapter_names BOOLEAN,
+			display_table_chapters BOOLEAN,
+			timeline_update_chapter BOOLEAN,
+			storyline_update_chapter BOOLEAN,
+			zoom REAL,       
+			x REAL,          
+			y REAL,          
+			world_id TEXT,
+			FOREIGN KEY (world_id) REFERENCES worlds(id)
+		);
+
+		`,
 	}
 
 	for _, query := range createTables {

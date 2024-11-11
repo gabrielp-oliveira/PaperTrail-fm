@@ -8,30 +8,35 @@
 
 5. criar funcionalidades de filtro e ordenanca para o papper e chapter list. (COMPLETA) -??- (FALTA IMPLEMENTAR ORDENANCA POR DATA DE CRIACAO)
 
-6. implementar as funcionalidades do menu chapter e storyline no subway (open, preview, create connection, Remove).
+6. implementar as funcionalidades do menu chapter e storyline no subway (open, preview, create connection, Remove). (COMPLETA)
 
 
 8. implementar funcionalidade para alteracao (com limites) do timeline utilizando o proprio subway (utilizar o header parece a melhor escolha de interatividade). (fazer junto tarefa 1 ) (COMPLETA)
 
-9. implementar logica de eventos (eventos sao acontecimentos que podem ou nao se passar no mesmo intervalo de uma ou mais timelines).
+___________________________________________________________________________________________________________________________________
 
-10. caso a connection seja vertical ou horizontal E tenha um outro chapter no meio dessa connection, verificar a possibilidade de fazer um "balao" para nao confundir o usuario sobre o target e source.
 
-11. implementar o unsubscribe de TODAS os observables do subway e world no caso do metodo ngOnDestroy seja chamado.
 
-12. implementar logica para caso existam dois ou mais chapters no mesmo timeline, range, e storyline. criando uma forma mais facil de identificar quais chapters estao ali e permitindo a interacao do usuario com eles.
 
-13. implementar logica paga loading.
+9. implementar logica de eventos (eventos sao acontecimentos que podem ou nao se passar no mesmo intervalo de uma ou mais timelines). (COMPLETE)
 
-14. imeplementar logica aonde caso uma connection esteja sobreponto outra, mude a cor para identificar que existem mais connections abaixo ou acima.
+10. caso a connection seja vertical ou horizontal E tenha um outro chapter no meio dessa connection, verificar a possibilidade de fazer um "balao" para nao confundir o usuario sobre o target e source. (COMPLETA)
 
-15. "limpar"/otimizar o subway component.
+11. implementar o unsubscribe de TODAS os observables do subway e world no caso do metodo ngOnDestroy seja chamado. (se possivel, fazer por ultimo)
 
-16. imeplementar identificador e filtro para as connections, diferenciando cada uma por cor.
+12. implementar logica para caso existam dois ou mais chapters no mesmo timeline, range, e storyline. criando uma forma mais facil de identificar quais chapters estao ali e permitindo a interacao do usuario com eles. (COMPLETA)
 
-17. remover/diminuir o maximo possivel as circonferencias (curvas) das connections.
+13. implementar logica para loading.
 
-18. permitir usuario de aumentar e diminuir o subway. armazenar informacao de zoom, pan no bd associado a aquele subway.
 
-19. criar world settings (!)
+14. "limpar"/otimizar o subway component.
 
+15. imeplementar identificador e filtro para as connections, diferenciando cada uma por cor. (! DESNECESSARIO !)
+
+16. remover/diminuir o maximo possivel as circonferencias (curvas) das connections. (COMPLETA)
+
+17. permitir usuario de aumentar e diminuir o subway. armazenar informacao de zoom, pan no bd associado a aquele subway. (??)
+
+18. criar world settings (COMPLETA)
+
+19. ****** Verificar a necessidade de implementar uma funcionalidade de interatividade em tempo real compartilhada com outros usuarios ******

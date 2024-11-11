@@ -71,7 +71,7 @@ func GetstoryLinesByWorldId(worldId string) ([]StoryLine, error) {
 	storylinesQuery := `
 		SELECT id, name, "order", description
 		FROM storylines
-		WHERE world_id = $1
+		WHERE world_id = $1 ORDER BY "order"
 	`
 	rows, err := db.DB.Query(storylinesQuery, worldId)
 	if err != nil {

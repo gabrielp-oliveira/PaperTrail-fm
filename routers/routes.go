@@ -18,6 +18,7 @@ func RegisterRoutes(server *gin.Engine) {
 	authenticatedWorlds.POST("/createPaper", CreatePaper)
 	authenticated.POST("/createEvent", CreateEvent)
 	authenticatedWorlds.PUT("/updatePaper", UpdatePaper)
+	authenticated.PUT("/updateSettings", updateSettings)
 	authenticated.PUT("/updatePaperList", UpdatePaperList)
 	authenticatedWorlds.GET("/getPaperList", getPaperList)
 
@@ -35,6 +36,7 @@ func RegisterRoutes(server *gin.Engine) {
 
 	authenticatedPaper := authenticated.Group("/").Use(middlewares.PaperInfo)
 	authenticatedPaper.POST("/createChapter", CreateChapter)
+	authenticated.GET("/getWorldChapters", GetWorldChapters)
 	authenticatedPaper.PUT("/updateChapter", UpdateChapter)
 	authenticated.PUT("/updateChapterList", UpdateChapterList)
 	authenticatedPaper.GET("/getChapterList", GetChapterList)
@@ -42,7 +44,7 @@ func RegisterRoutes(server *gin.Engine) {
 	authTimeline := authenticated.Group("/").Use(middlewares.TimelineInfo)
 	authTimeline.POST("/createTimeline", CreateTimeline)
 	authTimeline.PUT("/updateTimeline", UpdateTimeline)
-	authTimeline.PUT("/updateTimelineList", UpdateTimelineList)
+	authenticated.PUT("/updateTimelineList", UpdateTimelineList)
 	authTimeline.DELETE("/deleteTimeline", DeleteTimeline)
 
 	authStoryline := authenticated.Group("/").Use(middlewares.StorylineInfo)
