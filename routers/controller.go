@@ -13,31 +13,6 @@ import (
 	"github.com/google/uuid"
 )
 
-func GetCommitDiff(context *gin.Context) {
-
-	// repo := context.Query("repo")
-	// sha := context.Query("sha")
-	// path := context.Query("path")
-	// ghClient := githubclient.NewGitHubClient()
-
-	// userInfo, err := utils.GetUserInfo(context)
-	// if err != nil {
-	// 	context.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-	// 	return
-	// }
-
-	// repoName := utils.FormatRepositoryName(userInfo.ID + "_" + repo)
-
-	// commits, err := ghClient.GetCommitDiff(repoName, sha, path)
-	// if err != nil {
-	// 	context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-	// 	return
-	// }
-
-	// context.JSON(http.StatusOK, commits)
-
-}
-
 func CreateWorld(C *gin.Context) {
 	userInfo, err := utils.GetUserInfo(C)
 	if err != nil {
@@ -107,7 +82,7 @@ func CreateWorld(C *gin.Context) {
 		return
 	}
 
-	C.JSON(http.StatusOK, gin.H{"message": world.Name + " folder created successfully."})
+	C.JSON(http.StatusOK, gin.H{"message": world.Name + " folder created successfully.", "worldID": world.Id, "status": "success"})
 }
 
 func CreatePaper(C *gin.Context) {
@@ -129,7 +104,23 @@ func CreatePaper(C *gin.Context) {
 	}
 
 	driveSrv := googleClient.GetAppDriveService()
+
+	// {
+	//   "type": "service_account",
+	//   "project_id": "concise-beanbag-333616",
+	//   "private_key_id": "da7151f00621767c1801e89fdbeaf4e522364b6c",
+	//   "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCR+sv60EyrL4VD\nTemLztscvLgN0hNdQBJEwgM9Nr11XH7xZMP2SmyQLeaR8Ikc/XW+5Q9TsWI35i6q\n1KC9QXX/AN7VABDz5PMB86qfcX6IseBKbXz6aqlxRf/nh7nXsEKot2Xxsz6ZfQD0\nM+zBXEeDlilyQSeUvsmogJ+LnyeckphMTpqzZtKA3r1XiLuslVMOotIDO1bxMRnn\n88EST0Czv9vrAACyy3Rwd5a2uF9v80QQkHVR9n5YR29GVvYAp/hRQKf4JPsBT7OJ\n95dcqtaxW7WyeAs7ZNz6u2Ouu/57nXnNY8fcE4CwmpNwkM8gUV8z2WYek9VY5W4P\n4gPF101PAgMBAAECggEAB2n97ySiKDWXJpZv7J5aaYi6LlWDj0JgSyaxZGwBzlKe\nzeLIwxr/jYkPQ008oYDL+KCImT8SlnU13I5FBaer9wITzyycL87qeqhl+4gXnZiv\nJAiQhuVg6rRb7WXqzeYRVKFP56krXj9Hi5+RgDaQGUJIo5lkibzw4AJ8V+qC6ARE\nWQUSbILqtoTg+7xiL3uP/Q8ZFb4V5IXsGaYYDPYqJBa52/WxG294SD4AYqtbEmZY\np+wowhb0haCIodjMkt9m7dapB8gckIIOuGjUVuCMCp+e+hkjvprPUnyXuBQuwD67\n4slTXxKYWuCa86N+CUGxl1cg/PChCUoKLntDyOlsaQKBgQDKEkuaDfe+THOV6Lfo\n+pRrwsBULNqJyGFzcwUnWZmmwm2Mh1ZxVnthxgiOoUaNxoMcQaHGPQ2EwNCPbuyX\nUuSfPLUUMCdQWBLsQX1fhgMN7wBlgVW58uCaJFwBCI9pa5vw2Qq4Zqhx3v/ftA7G\nhIyygaiKfwwYxeg+wYpm9lz9eQKBgQC48EJ/UCa59DqVj7SkGORfHYAcU2xT5mmK\nasPIq/bGpbB0LVvfzN3rYtiBg5A4DMaPsfNwQ6fmNCD7k8bwX9qDenwNHRUi8QZi\naouek48QPD+7lP6khW0noFlLI7OJYKYdlZ12BysI3DidVhrENwjx/Z/HC0Y1t1Ln\nqUtTHZqXBwKBgGav1Wt8HaG/CB3uHUdvz2zTkxkzkfrisWMR2FSe2846j6ESRYNj\nB2AwWrjgjBIQByCc2bD75ZrIwTOikuhzX2rsVrjjn5bcqwEUZrncSEEUa4cpqn7M\nRgcO4xJDX12bKavDIAeFY6Q6Rp1PyxJm2Xj9GsEGvwb3y4XYpJSeLbNBAoGAcGVk\npKd7wcwSxs7dxFV0hfIR6CUzUxJX1k3oy07n3fbY9OKUUcHapbIfTyc8QTRSgQZv\noy0bH6dS3FMFtxUqYnnQZs/kBqZhcPK8BBY9/mn/eeuljyugGVM0sZvzA2z/yD8j\nwZW9q9bbeZPZFKM2BoxTzM6nTwIpmq2jH9KAH4UCgYEAn3A9IBzHBO6H3Y2NFjwD\nb3U/Cxq+4S5KMwvdacXaj9rKwTRFlASUMCxS/tlimlUGo5fo/JwMl+HAIFfmv1VK\nhcIjPo05/RJVBHE9CfY+Sg6o6o5mBCvgRp+1BWjy4mKt9LqDl7V7MQc4+6cCGi4P\nZ2KUIPifmb7FR36hMAMVgUg=\n-----END PRIVATE KEY-----\n",
+	//   "client_email": "Papertrail@concise-beanbag-333616.iam.gserviceaccount.com",
+	//   "client_id": "102028377717608211022",
+	//   "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+	//   "token_uri": "https://oauth2.googleapis.com/token",
+	//   "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+	//   "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/Papertrail%40concise-beanbag-333616.iam.gserviceaccount.com",
+	//   "universe_domain": "googleapis.com"
+	// }
+
 	folder, err := googleClient.CreateFolder(driveSrv, paper.Name, worldsInfo.Id)
+
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating folder. " + err.Error()})
 		return
@@ -339,21 +330,45 @@ func GetChapterUrl(C *gin.Context) {
 func GetChapter(C *gin.Context) {
 	chapterId := C.Query("id")
 	if chapterId == "" {
-		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting chapter id."})
+		C.JSON(http.StatusBadRequest, gin.H{"error": "Error getting chapter id."})
 		return
 	}
 
 	var chapter models.Chapter
 	chapter.Id = chapterId
-
-	err := chapter.Get()
-	if err != nil {
-		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting chapter info: " + err.Error()})
+	if err := chapter.Get(); err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error retrieving chapter: " + err.Error()})
 		return
 	}
 
-	C.JSON(http.StatusOK, chapter)
+	var result models.ChapterDetails
+	result.Chapter = chapter
+
+	// Verificar e obter Timeline, se presente
+	if chapter.TimelineID != nil {
+		var timeline models.Timeline
+		timeline.Id = *chapter.TimelineID
+		if err := timeline.Get(); err != nil {
+			C.JSON(http.StatusInternalServerError, gin.H{"error": "Error retrieving timeline: " + err.Error()})
+			return
+		}
+		result.Timeline = timeline
+	}
+
+	// Verificar e obter StoryLine, se presente
+	if chapter.Storyline_id != nil {
+		var storyline models.StoryLine
+		storyline.Id = *chapter.Storyline_id
+		if err := storyline.Get(); err != nil {
+			C.JSON(http.StatusInternalServerError, gin.H{"error": "Error retrieving storyline: " + err.Error()})
+			return
+		}
+		result.StoryLine = storyline
+	}
+
+	C.JSON(http.StatusOK, result)
 }
+
 func GetPaper(C *gin.Context) {
 	PaperId := C.Query("id")
 	if PaperId == "" {

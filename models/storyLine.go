@@ -156,7 +156,7 @@ func (t StoryLine) CreateBasicStoryLines(wiD string) ([]StoryLine, error) {
 	storyLinesList = append(storyLinesList, str1)
 	err := str1.Save()
 	if err != nil {
-		return nil, fmt.Errorf("error removing storyLines: %v", err)
+		return nil, fmt.Errorf("error creating storyLine: %v", err)
 	}
 
 	var str2 StoryLine
@@ -169,12 +169,12 @@ func (t StoryLine) CreateBasicStoryLines(wiD string) ([]StoryLine, error) {
 	str2.Id = id
 	err = str2.Save()
 	if err != nil {
-		return nil, fmt.Errorf("error removing storyLines: %v", err)
+		return nil, fmt.Errorf("error creating storyLine: %v", err)
 	}
 	storyLinesList = append(storyLinesList, str2)
 	var str3 StoryLine
-	str3.Name = "extra"
-	str3.Description = "extra story line"
+	str3.Name = "Dominant"
+	str3.Description = "Dominant story line"
 	str3.WorldID = wiD
 	str3.Order = 3
 	id = uuid.New().String()
@@ -182,9 +182,22 @@ func (t StoryLine) CreateBasicStoryLines(wiD string) ([]StoryLine, error) {
 	str3.Created_at = time.Now()
 	err = str3.Save()
 	if err != nil {
-		return nil, fmt.Errorf("error removing storyLines: %v", err)
+		return nil, fmt.Errorf("error creating storyLine: %v", err)
 	}
 	storyLinesList = append(storyLinesList, str3)
+	var str4 StoryLine
+	str4.Name = "Extra"
+	str4.Description = "Extra story line"
+	str4.WorldID = wiD
+	str4.Order = 4
+	id = uuid.New().String()
+	str4.Id = id
+	str4.Created_at = time.Now()
+	err = str4.Save()
+	if err != nil {
+		return nil, fmt.Errorf("error creating storyLine: %v", err)
+	}
+	storyLinesList = append(storyLinesList, str4)
 	return storyLinesList, nil
 
 }
@@ -207,4 +220,21 @@ func (t *StoryLine) Update() error {
 
 	_, err = stmt.Exec(t.Name, t.Description, t.Order, t.Id)
 	return err
+}
+
+func (str *StoryLine) Get() error {
+
+	query := `
+		SELECT id, name, "order", description
+		FROM storylines
+		WHERE id = $1 
+	`
+	row := db.DB.QueryRow(query, str.Id)
+
+	err := row.Scan(&str.Id, &str.Name, &str.Order, &str.Description)
+
+	if err != nil {
+		return err
+	}
+	return nil
 }

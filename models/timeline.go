@@ -202,3 +202,19 @@ func (t *Timeline) Update() error {
 	_, err = stmt.Exec(t.Name, t.Description, t.Range, t.Order, t.Id)
 	return err
 }
+
+func (t *Timeline) Get() error {
+	query := `
+		SELECT id, name, world_id, range, "order", description
+		FROM timelines
+		WHERE id = $1
+	`
+	row := db.DB.QueryRow(query, t.Id)
+
+	err := row.Scan(&t.Id, &t.Name, &t.WorldsID, &t.Range, &t.Order, &t.Description)
+
+	if err != nil {
+		return err
+	}
+	return nil
+}

@@ -9,10 +9,10 @@ import (
 )
 
 type ChapterTimeline struct {
-	Id         string  `json:"id"`
-	Chapter_Id *string `json:"chapter_Id"`
-	TimelineID *string `json:"timeline_id"`
-	Range      int     `json:"range"`
+	Id         string `json:"id"`
+	Chapter_Id string `json:"chapter_Id"`
+	TimelineID string `json:"timeline_id"`
+	Range      int    `json:"range"`
 }
 
 type ChapterTl struct {
@@ -131,41 +131,4 @@ func (t *ChapterTimeline) Update() error {
 
 	return nil
 
-}
-
-func GetChapteJoinTimelineByWorldId(worldId string) ([]Chapter, error) {
-	chapters := []Chapter{}
-
-	chaptersQuery := `
-    SELECT id, name, description, 
-        created_at, Paper_id, world_id, 
-        event_id, storyline_id, timeline_id, "order",
-        range
-    FROM chapters
-    WHERE world_id = $1
-`
-	rows, err := db.DB.Query(chaptersQuery, worldId)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var chapter Chapter
-		var chapterRange sql.NullInt32 // Para lidar com valores nulos de range da tabela chapter_timeline
-
-		// Faz o Scan para capturar os campos da tabela chapters e chapter_timeline
-		if err := rows.Scan(&chapter.Id, &chapter.Name, &chapter.Description, &chapter.CreatedAt,
-			&chapter.PaperID, &chapter.WorldsID, &chapter.Event_Id, &chapter.Storyline_id, &chapter.TimelineID, &chapter.Order, &chapter.Range); err != nil {
-			return nil, err
-		}
-
-		// Se houver um valor válido para o range, atribuímos ao capítulo
-		if chapterRange.Valid {
-			chapter.Range = int(chapterRange.Int32)
-		}
-
-		chapters = append(chapters, chapter)
-	}
-	return chapters, err
 }

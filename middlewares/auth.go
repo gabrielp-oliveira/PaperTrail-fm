@@ -16,13 +16,13 @@ func Authenticate(C *gin.Context) {
 	token := C.Request.Header.Get("Authorization")
 
 	if token == "" {
-		C.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "Not authorized."})
+		C.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Not authorized."})
 		return
 	}
 
 	userEmail, err := utils.VerifyToken(token)
 	if err != nil {
-		C.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "Not authorized."})
+		C.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Not authorized."})
 		return
 	}
 	query := "SELECT name, email,base_folder, id, name, accessToken, refresh_token, token_expiry FROM users WHERE email = $1"
@@ -33,16 +33,16 @@ func Authenticate(C *gin.Context) {
 
 	if err != nil {
 		if err == sql.ErrNoRows {
-			C.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "Not authorized."})
+			C.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Not authorized."})
 			return
 		}
 
-		C.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "Not authorized."})
+		C.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Not authorized."})
 		return
 	}
 	newToken, err := userInfo.UpdateOAuthToken()
 	if err != nil {
-		C.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "error generating access token.."})
+		C.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "error generating access token.."})
 		return
 	}
 

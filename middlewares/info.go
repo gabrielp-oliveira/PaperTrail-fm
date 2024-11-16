@@ -15,7 +15,7 @@ import (
 func WorldInfo(C *gin.Context) {
 	userInfo, err := utils.GetUserInfo(C)
 	if err == sql.ErrNoRows {
-		C.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": err.Error()})
+		C.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -30,7 +30,7 @@ func WorldInfo(C *gin.Context) {
 	world, err := World(userInfo.ID, paper.World_id)
 
 	if err == sql.ErrNoRows {
-		C.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "world  not found in google drive. " + err.Error()})
+		C.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "world  not found in google drive. " + err.Error()})
 		return
 	}
 	C.Set("world", world)
@@ -150,7 +150,7 @@ func TimelineInfo(C *gin.Context) {
 func EventHandler(C *gin.Context) {
 	userInfo, err := utils.GetUserInfo(C)
 	if err == sql.ErrNoRows {
-		C.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": err.Error()})
+		C.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
 	var event models.Event
@@ -165,7 +165,7 @@ func EventHandler(C *gin.Context) {
 func ConnectionHandler(C *gin.Context) {
 	userInfo, err := utils.GetUserInfo(C)
 	if err == sql.ErrNoRows {
-		C.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": err.Error()})
+		C.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -174,7 +174,7 @@ func ConnectionHandler(C *gin.Context) {
 
 	world, err := World(userInfo.ID, connection.World_id)
 	if err != nil {
-		C.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": err.Error()})
+		C.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
 	C.Set("world", world)

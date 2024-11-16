@@ -8,6 +8,12 @@ import (
 	"PaperTrail-fm.com/db"
 )
 
+type ChapterDetails struct {
+	Chapter   `json:"chapter"`
+	Timeline  `json:"timeline"`
+	StoryLine `json:"storyline"`
+	Events    []Event `json:"events"`
+}
 type Chapter struct {
 	Id           string     `json:"id"`
 	WorldsID     string     `json:"world_id"`
@@ -107,10 +113,10 @@ func (c *Chapter) RemoveEvent() error {
 }
 
 func (c *Chapter) Get() error {
-	query := `SELECT id, name, description, created_at, Paper_id, world_id, event_id, timeline_id, update, "order", last_update FROM chapters WHERE id = $1`
+	query := `SELECT id, name, description, created_at, Paper_id, world_id, event_id, timeline_id, update, "order", last_update, storyline_id FROM chapters WHERE id = $1`
 	row := db.DB.QueryRow(query, c.Id)
 
-	err := row.Scan(&c.Id, &c.Name, &c.Description, &c.CreatedAt, &c.PaperID, &c.WorldsID, &c.Event_Id, &c.TimelineID, &c.Update, &c.Order, &c.LastUpdate)
+	err := row.Scan(&c.Id, &c.Name, &c.Description, &c.CreatedAt, &c.PaperID, &c.WorldsID, &c.Event_Id, &c.TimelineID, &c.Update, &c.Order, &c.LastUpdate, &c.Storyline_id)
 	if err != nil {
 		return err
 	}
@@ -164,4 +170,35 @@ func (c *Chapter) UpdateChapter() error {
 
 	_, err = stmt.Exec(c.Name, c.Description, c.Order, c.Update, c.LastUpdate, c.Storyline_id, c.TimelineID, c.Event_Id, c.Range, c.Id)
 	return err
+}
+
+func GetChapteJoinTimelineByWorldId(worldId string) ([]Chapter, error) {
+	chapters := []Chapter{}
+
+	chaptersQuery := `
+    SELECT id, name, description, 
+        created_at, Paper_id, world_id, 
+        event_id, storyline_id, timeline_id, "order",
+        range
+    FROM chapters
+    WHERE world_id = $1
+`
+	rows, err := db.DB.Query(chaptersQuery, worldId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var chapter Chapter
+
+		// Faz o Scan para capturar os campos da tabela chapters
+		if err := rows.Scan(&chapter.Id, &chapter.Name, &chapter.Description, &chapter.CreatedAt,
+			&chapter.PaperID, &chapter.WorldsID, &chapter.Event_Id, &chapter.Storyline_id, &chapter.TimelineID, &chapter.Order, &chapter.Range); err != nil {
+			return nil, err
+		}
+
+		chapters = append(chapters, chapter)
+	}
+	return chapters, nil
 }
