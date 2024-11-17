@@ -115,10 +115,20 @@ func createTables(db *sql.DB) {
 			source_chapter_id TEXT NOT NULL,
 			target_chapter_id TEXT NOT NULL,
 			world_id TEXT,
-			FOREIGN KEY(source_chapter_id) REFERENCES chapters(id),
-			FOREIGN KEY(target_chapter_id) REFERENCES chapters(id),
-			FOREIGN KEY (world_id) REFERENCES worlds(id)
+    		group_id TEXT DEFAULT '',
+			FOREIGN KEY (source_chapter_id) REFERENCES chapters(id),
+			FOREIGN KEY (target_chapter_id) REFERENCES chapters(id),
+			FOREIGN KEY (world_id) REFERENCES worlds(id),
 		);`,
+		`CREATE TABLE IF NOT EXISTS group_connections (
+			id TEXT PRIMARY KEY,
+			world_id TEXT,
+			color TEXT,
+			name TEXT,
+			description TEXT,
+			FOREIGN KEY (world_id) REFERENCES worlds(id)
+		);
+`,
 		`CREATE TABLE IF NOT EXISTS subway_settings (
 			id TEXT PRIMARY KEY,
 			chapter_names BOOLEAN,

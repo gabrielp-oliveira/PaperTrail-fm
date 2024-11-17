@@ -17,13 +17,14 @@ type World struct {
 
 type Env struct {
 	World
-	Chapters        []Chapter       `json:"chapters"`
-	Events          []Event         `json:"events"`
-	Connections     []Connection    `json:"connections"`
-	Timelines       []Timeline      `json:"timelines"`
-	Papers          []Paper         `json:"papers"`
-	StoryLines      []StoryLine     `json:"storyLines"`
-	Subway_settings Subway_settings `json:"subway_settings"`
+	Chapters         []Chapter         `json:"chapters"`
+	Events           []Event           `json:"events"`
+	Connections      []Connection      `json:"connections"`
+	Timelines        []Timeline        `json:"timelines"`
+	Papers           []Paper           `json:"papers"`
+	StoryLines       []StoryLine       `json:"storyLines"`
+	GroupConnections []GroupConnection `json:"groupConnections"`
+	Subway_settings  Subway_settings   `json:"subway_settings"`
 }
 
 // Salva o Worlds no banco de dados
@@ -112,6 +113,10 @@ func (rp *World) GetWorldData() (Env, error) {
 	if err != nil {
 		return env, err
 	}
+	gcs, err := GetConnectionsGroupListByWorldId(rp.Id)
+	if err != nil {
+		return env, err
+	}
 
 	// Preencher o objeto Env
 	env.World = *rp
@@ -122,6 +127,7 @@ func (rp *World) GetWorldData() (Env, error) {
 	env.Papers = Papers
 	env.StoryLines = storyLines
 	env.Subway_settings = *ss
+	env.GroupConnections = gcs
 	return env, nil
 }
 

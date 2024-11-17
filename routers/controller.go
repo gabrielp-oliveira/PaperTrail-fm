@@ -307,19 +307,18 @@ func GetChapterUrl(C *gin.Context) {
 		return
 	}
 
-	var chapter models.Chapter
-	chapter.Id = chapterId
-	err := chapter.Get()
-	if err != nil {
-		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
+	// var chapter models.Chapter
+	// chapter.Id = chapterId
+	// err := chapter.Get()
+	// if err != nil {
+	// 	C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	// 	return
+	// }
 
 	driveSrv := googleClient.GetAppDriveService()
 
-	docId := chapter.Id
-	// chapter.Get()
-	file, err := driveSrv.Files.Get(docId).Fields("webViewLink").Do()
+	// docId := chapter.Id
+	file, err := driveSrv.Files.Get(chapterId).Fields("webViewLink").Do()
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error fetching document link: " + err.Error()})
 		return
@@ -366,6 +365,15 @@ func GetChapter(C *gin.Context) {
 		result.StoryLine = storyline
 	}
 
+	driveSrv := googleClient.GetAppDriveService()
+
+	file, err := driveSrv.Files.Get(chapter.Id).Fields("webViewLink").Do()
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error fetching document link: " + err.Error()})
+		return
+	}
+
+	result.DocumentUrl = file.WebViewLink
 	C.JSON(http.StatusOK, result)
 }
 
@@ -751,5 +759,43 @@ func RemoveConnection(C *gin.Context) {
 	}
 
 	C.JSON(http.StatusOK, err)
+
+}
+
+func CreateGroupConnection(C *gin.Context) {
+
+	var gc models.GroupConnection
+
+	if err := C.ShouldBindJSON(&gc); err != nil {
+		C.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	id := uuid.New().String()
+
+	gc.Id = id
+	err := gc.Save()
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	C.JSON(http.StatusOK, gc)
+
+}
+
+func UpdateConnection(C *gin.Context) {
+
+	var cnn models.Connection
+
+	if err := C.ShouldBindJSON(&cnn); err != nil {
+		C.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	err := cnn.Update()
+	if err != nil {
+		C.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	C.JSON(http.StatusOK, cnn)
 
 }

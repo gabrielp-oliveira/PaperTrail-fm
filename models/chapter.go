@@ -9,10 +9,11 @@ import (
 )
 
 type ChapterDetails struct {
-	Chapter   `json:"chapter"`
-	Timeline  `json:"timeline"`
-	StoryLine `json:"storyline"`
-	Events    []Event `json:"events"`
+	Chapter     `json:"chapter"`
+	Timeline    `json:"timeline"`
+	StoryLine   `json:"storyline"`
+	DocumentUrl string  `json:documentUrl`
+	Events      []Event `json:"events"`
 }
 type Chapter struct {
 	Id           string     `json:"id"`

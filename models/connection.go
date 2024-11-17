@@ -13,6 +13,7 @@ type Connection struct {
 	SourceChapterID string `json:"sourceChapterID"`
 	TargetChapterID string `json:"targetChapterID"`
 	World_id        string `json:"world_id"`
+	Group_id        string `json:group_id`
 }
 
 func (cnn *Connection) Save() error {
@@ -35,10 +36,10 @@ func (cnn *Connection) Save() error {
 	if err == sql.ErrNoRows {
 		// Inserir nova conexão na tabela connections
 		query := `
-		INSERT INTO connections (id, source_chapter_id, target_chapter_id, world_id)
-		VALUES ($1, $2, $3, $4)
+		INSERT INTO connections (id, source_chapter_id, target_chapter_id, world_id, group_id)
+		VALUES ($1, $2, $3, $4, $5)
 	`
-		_, err := db.DB.Exec(query, cnn.Id, cnn.SourceChapterID, cnn.TargetChapterID, cnn.World_id)
+		_, err := db.DB.Exec(query, cnn.Id, cnn.SourceChapterID, cnn.TargetChapterID, cnn.World_id, cnn.Group_id)
 		if err != nil {
 			return fmt.Errorf("error inserting connection: %v", err)
 		}
@@ -69,11 +70,25 @@ func (cnn *Connection) Delete() error {
 	return nil
 }
 
+func (cnn *Connection) Update() error {
+
+	query := `
+	update connections 
+	SET group_id = $1 WHERE id = $2`
+	stmt, err := db.DB.Prepare(query)
+
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+	_, err = stmt.Exec(cnn.Group_id, cnn.Id)
+	return err
+}
 func GetConnectionsListByWorldId(worldId string) ([]Connection, error) {
 
 	connections := []Connection{}
 	connectionsQuery := `
-		SELECT id, source_chapter_id, target_chapter_id
+		SELECT id, source_chapter_id, target_chapter_id, group_id
 		FROM connections
 		WHERE source_chapter_id IN (SELECT id FROM chapters WHERE world_id = $1)
 	`
@@ -85,7 +100,7 @@ func GetConnectionsListByWorldId(worldId string) ([]Connection, error) {
 
 	for rows.Next() {
 		var connection Connection
-		if err := rows.Scan(&connection.Id, &connection.SourceChapterID, &connection.TargetChapterID); err != nil {
+		if err := rows.Scan(&connection.Id, &connection.SourceChapterID, &connection.TargetChapterID, &connection.Group_id); err != nil {
 			return nil, err
 		}
 		connection.World_id = worldId

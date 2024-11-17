@@ -31,6 +31,9 @@ func RegisterRoutes(server *gin.Engine) {
 
 	authConnection := authenticated.Group("/").Use(middlewares.ConnectionHandler)
 	authConnection.POST("/createConnection", CreateConnection)
+	authenticated.POST("/createGroupConnection", CreateGroupConnection)
+	authenticated.PUT("/updateConnection", UpdateConnection)
+
 	authConnection.POST("/removeConnection", RemoveConnection)
 	// authenticatedPaper.GET("/paper", GetPaper)
 
