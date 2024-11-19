@@ -74,6 +74,7 @@ func CreateWorld(C *gin.Context) {
 	settings.Zomm = 1
 	settings.X = 1
 	settings.Y = 1
+	settings.Group_connection_update_chapter = false
 	settings.Display_table_chapters = false
 
 	err = settings.Save()
@@ -335,14 +336,15 @@ func GetChapter(C *gin.Context) {
 
 	var chapter models.Chapter
 	chapter.Id = chapterId
-	if err := chapter.Get(); err != nil {
+	color, err := chapter.Get()
+	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error retrieving chapter: " + err.Error()})
 		return
 	}
 
 	var result models.ChapterDetails
 	result.Chapter = chapter
-
+	result.Color = color
 	// Verificar e obter Timeline, se presente
 	if chapter.TimelineID != nil {
 		var timeline models.Timeline
@@ -797,5 +799,22 @@ func UpdateConnection(C *gin.Context) {
 		return
 	}
 	C.JSON(http.StatusOK, cnn)
+
+}
+func UpdateGroupConnection(C *gin.Context) {
+
+	var gc models.GroupConnection
+
+	if err := C.ShouldBindJSON(&gc); err != nil {
+		C.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	err := gc.Update()
+	if err != nil {
+		C.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	C.JSON(http.StatusOK, gc)
 
 }

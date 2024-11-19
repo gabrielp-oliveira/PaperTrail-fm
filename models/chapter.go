@@ -12,7 +12,8 @@ type ChapterDetails struct {
 	Chapter     `json:"chapter"`
 	Timeline    `json:"timeline"`
 	StoryLine   `json:"storyline"`
-	DocumentUrl string  `json:documentUrl`
+	DocumentUrl string  `json:"documentUrl"`
+	Color       string  `json:"color"`
 	Events      []Event `json:"events"`
 }
 type Chapter struct {
@@ -113,15 +114,36 @@ func (c *Chapter) RemoveEvent() error {
 	return nil
 }
 
-func (c *Chapter) Get() error {
-	query := `SELECT id, name, description, created_at, Paper_id, world_id, event_id, timeline_id, update, "order", last_update, storyline_id FROM chapters WHERE id = $1`
+func (c *Chapter) Get() (string, error) {
+	var color string
+	query := `
+		SELECT 
+			ch.id, 
+			ch.name, 
+			ch.description, 
+			ch.created_at, 
+			ch.Paper_id, 
+			ch.world_id, 
+			ch.event_id, 
+			ch.timeline_id, 
+			ch.update, 
+			ch."order", 
+			ch.last_update, 
+			ch.storyline_id,
+			p.color
+		FROM chapters ch
+		LEFT JOIN Papers p ON ch.Paper_id = p.id
+		WHERE ch.id = $1
+	`
+
 	row := db.DB.QueryRow(query, c.Id)
 
-	err := row.Scan(&c.Id, &c.Name, &c.Description, &c.CreatedAt, &c.PaperID, &c.WorldsID, &c.Event_Id, &c.TimelineID, &c.Update, &c.Order, &c.LastUpdate, &c.Storyline_id)
+	// Adicione um campo "Color" no struct do Chapter, por exemplo: Color string
+	err := row.Scan(&c.Id, &c.Name, &c.Description, &c.CreatedAt, &c.PaperID, &c.WorldsID, &c.Event_Id, &c.TimelineID, &c.Update, &c.Order, &c.LastUpdate, &c.Storyline_id, &color)
 	if err != nil {
-		return err
+		return color, err
 	}
-	return nil
+	return color, nil
 }
 
 func (c *Chapter) AddTimeline(timelineID string) error {

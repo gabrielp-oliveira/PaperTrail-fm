@@ -55,6 +55,7 @@ func createTables(db *sql.DB) {
 			path TEXT NOT NULL,
 			"order" integer,
 			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			color TEXT DEFAULT '',
 			world_id TEXT,
 			FOREIGN KEY(world_id) REFERENCES worlds(id)
 		);`,
@@ -118,7 +119,7 @@ func createTables(db *sql.DB) {
     		group_id TEXT DEFAULT '',
 			FOREIGN KEY (source_chapter_id) REFERENCES chapters(id),
 			FOREIGN KEY (target_chapter_id) REFERENCES chapters(id),
-			FOREIGN KEY (world_id) REFERENCES worlds(id),
+			FOREIGN KEY (world_id) REFERENCES worlds(id)
 		);`,
 		`CREATE TABLE IF NOT EXISTS group_connections (
 			id TEXT PRIMARY KEY,
@@ -135,6 +136,7 @@ func createTables(db *sql.DB) {
 			display_table_chapters BOOLEAN,
 			timeline_update_chapter BOOLEAN,
 			storyline_update_chapter BOOLEAN,
+			group_connection_update_chapter BOOLEAN,
 			zoom REAL,       
 			x REAL,          
 			y REAL,          

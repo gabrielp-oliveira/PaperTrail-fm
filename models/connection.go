@@ -13,7 +13,7 @@ type Connection struct {
 	SourceChapterID string `json:"sourceChapterID"`
 	TargetChapterID string `json:"targetChapterID"`
 	World_id        string `json:"world_id"`
-	Group_id        string `json:group_id`
+	Group_id        string `json:"group_id"`
 }
 
 func (cnn *Connection) Save() error {

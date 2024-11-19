@@ -69,3 +69,18 @@ func GetConnectionsGroupListByWorldId(worldId string) ([]GroupConnection, error)
 
 	return groupConnections, err
 }
+
+func (gc *GroupConnection) Update() error {
+
+	query := `
+	update group_connections 
+	SET name = $1, description = $2, color = $3 WHERE id = $4`
+	stmt, err := db.DB.Prepare(query)
+
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+	_, err = stmt.Exec(gc.Name, gc.Description, gc.Color, gc.Id)
+	return err
+}

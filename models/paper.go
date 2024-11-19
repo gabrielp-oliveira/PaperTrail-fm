@@ -16,6 +16,7 @@ type Paper struct {
 	Path        string    `json:"path"`
 	Created_at  time.Time `json:"created_at"`
 	World_id    string    `json:"world_id"`
+	Color       string    `json:"color"`
 	Order       int       `json:"order,omitempty"` // Use ponteiro para lidar com valores nulos
 }
 
@@ -46,9 +47,9 @@ func (e *Paper) Save() error {
 
 		e.Order = newOrder
 		insertQuery := `
-		INSERT INTO Papers(id, name, description, path, created_at, world_id, "order") 
+		INSERT INTO Papers(id, name, description, path, created_at, world_id, "order", color) 
 		VALUES ($1, $2, $3, $4, $5, $6, $7)`
-		_, err = db.DB.Exec(insertQuery, e.ID, e.Name, e.Description, e.Path, e.Created_at, e.World_id, newOrder)
+		_, err = db.DB.Exec(insertQuery, e.ID, e.Name, e.Description, e.Path, e.Created_at, e.World_id, newOrder, e.Color)
 		if err != nil {
 			return fmt.Errorf("error inserting paper: %v", err)
 		}
@@ -73,7 +74,7 @@ func GetAllPapers() ([]Paper, error) {
 
 	for rows.Next() {
 		var paper Paper
-		err := rows.Scan(&paper.ID, &paper.Name, &paper.Description, &paper.Path, &paper.Created_at, &paper.World_id)
+		err := rows.Scan(&paper.ID, &paper.Name, &paper.Description, &paper.Path, &paper.Created_at, &paper.World_id, &paper.Color)
 
 		if err != nil {
 			return nil, err
@@ -90,7 +91,7 @@ func GetPaperByID(id int64) (*Paper, error) {
 	row := db.DB.QueryRow(query, id)
 
 	var paper Paper
-	err := row.Scan(&paper.ID, &paper.Name, &paper.Description, &paper.Path, &paper.Created_at, &paper.World_id)
+	err := row.Scan(&paper.ID, &paper.Name, &paper.Description, &paper.Path, &paper.Created_at, &paper.World_id, &paper.Color)
 	if err != nil {
 		return nil, err
 	}
@@ -99,10 +100,11 @@ func GetPaperByID(id int64) (*Paper, error) {
 }
 
 func (paper *Paper) Update() error {
+
 	query := `
 	UPDATE Papers
-	SET name = $1, description = $2, "order" = $3
-	WHERE id = $4
+	SET name = $1, description = $2, "order" = $3, color = $4
+	WHERE id = $5
 	`
 	stmt, err := db.DB.Prepare(query)
 
@@ -112,7 +114,7 @@ func (paper *Paper) Update() error {
 
 	defer stmt.Close()
 
-	_, err = stmt.Exec(paper.Name, paper.Description, paper.Order, paper.ID)
+	_, err = stmt.Exec(paper.Name, paper.Description, paper.Order, paper.Color, paper.ID)
 	return err
 }
 
@@ -180,10 +182,10 @@ func GenerateSecureIframeURL(fileID, token string) string {
 }
 
 func (paper *Paper) Get() error {
-	query := `SELECT id, name, description, created_at, world_id, "order" FROM Papers WHERE id = $1`
+	query := `SELECT id, name, description, created_at, world_id, "order", color FROM Papers WHERE id = $1`
 	row := db.DB.QueryRow(query, paper.ID)
 
-	err := row.Scan(&paper.ID, &paper.Name, &paper.Description, &paper.Created_at, &paper.World_id, &paper.Order)
+	err := row.Scan(&paper.ID, &paper.Name, &paper.Description, &paper.Created_at, &paper.World_id, &paper.Order, &paper.Color)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return fmt.Errorf("no paper found with id %s", paper.ID)
@@ -197,7 +199,7 @@ func GetPaperListByWorldId(worldId string) ([]Paper, error) {
 	Papers := []Paper{}
 
 	PaperQuery := `
-	SELECT id, name, description, created_at, "order"
+	SELECT id, name, description, created_at, "order", color
 	FROM Papers
 	WHERE world_id = $1
 	`
@@ -209,7 +211,7 @@ func GetPaperListByWorldId(worldId string) ([]Paper, error) {
 
 	for rows.Next() {
 		var paper Paper
-		if err := rows.Scan(&paper.ID, &paper.Name, &paper.Description, &paper.Created_at, &paper.Order); err != nil {
+		if err := rows.Scan(&paper.ID, &paper.Name, &paper.Description, &paper.Created_at, &paper.Order, &paper.Color); err != nil {
 			return nil, err
 		}
 

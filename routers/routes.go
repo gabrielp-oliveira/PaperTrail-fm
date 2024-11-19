@@ -33,6 +33,7 @@ func RegisterRoutes(server *gin.Engine) {
 	authConnection.POST("/createConnection", CreateConnection)
 	authenticated.POST("/createGroupConnection", CreateGroupConnection)
 	authenticated.PUT("/updateConnection", UpdateConnection)
+	authenticated.PUT("/updateGroupConnection", UpdateGroupConnection)
 
 	authConnection.POST("/removeConnection", RemoveConnection)
 	// authenticatedPaper.GET("/paper", GetPaper)
