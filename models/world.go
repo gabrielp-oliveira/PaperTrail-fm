@@ -9,10 +9,11 @@ import (
 )
 
 type World struct {
-	Id        string    `json:"id"`
-	Name      string    `json:"name"`
-	CreatedAt time.Time `json:"created_at"`
-	UserID    string    `json:"user_id"`
+	Id          string    `json:"id"`
+	Name        string    `json:"name"`
+	CreatedAt   time.Time `json:"created_at"`
+	UserID      string    `json:"user_id"`
+	Description string    `json:"description"`
 }
 
 type Env struct {
@@ -40,9 +41,9 @@ func (rp *World) Save() error {
 
 	if err == sql.ErrNoRows {
 		insertQuery := `
-		INSERT INTO worlds(id, name, created_at, user_id) 
-		VALUES ($1, $2, $3, $4)`
-		_, err := db.DB.Exec(insertQuery, rp.Id, rp.Name, rp.CreatedAt, rp.UserID)
+		INSERT INTO worlds(id, name, description, created_at, user_id) 
+		VALUES ($1, $2, $3, $4, $5)`
+		_, err := db.DB.Exec(insertQuery, rp.Id, rp.Name, rp.Description, rp.CreatedAt, rp.UserID)
 		if err != nil {
 			return fmt.Errorf("error inserting world: %v", err)
 		}
@@ -53,6 +54,20 @@ func (rp *World) Save() error {
 	}
 
 	return nil
+}
+func (w *World) Get() error {
+
+	query := "SELECT id, name, description, created_at FROM worlds WHERE id = $1"
+
+	row := db.DB.QueryRow(query, w.Id)
+
+	err := row.Scan(&w.Id, &w.Name, &w.Description, &w.CreatedAt)
+	if err != nil {
+		return err
+	}
+
+	return nil
+
 }
 
 // Obtém a lista de Papers associados ao Worlds

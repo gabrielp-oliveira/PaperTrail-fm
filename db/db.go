@@ -43,6 +43,7 @@ func createTables(db *sql.DB) {
 		`CREATE TABLE IF NOT EXISTS worlds (
 			id TEXT PRIMARY KEY,
 			name TEXT NOT NULL,
+			description TEXT,
 			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			user_id TEXT,
 			FOREIGN KEY(user_id) REFERENCES users(id)

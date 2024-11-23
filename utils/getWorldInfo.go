@@ -30,6 +30,11 @@ func GetWorldsInfo(context *gin.Context) (models.World, error) {
 
 	var worldInfo models.World
 	worldInfo.Id = worldId
+	err := worldInfo.Get()
+	if err != nil {
+		return models.World{}, errors.New("unable to retrieve worlds information")
+	}
+
 	return worldInfo, nil
 }
 func GetConnectionInfo(context *gin.Context) (models.Connection, error) {

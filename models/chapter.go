@@ -9,12 +9,15 @@ import (
 )
 
 type ChapterDetails struct {
-	Chapter     `json:"chapter"`
-	Timeline    `json:"timeline"`
-	StoryLine   `json:"storyline"`
-	DocumentUrl string  `json:"documentUrl"`
-	Color       string  `json:"color"`
-	Events      []Event `json:"events"`
+	Chapter         `json:"chapter"`
+	Timeline        `json:"timeline"`
+	StoryLine       `json:"storyLine"`
+	DocumentUrl     string              `json:"documentUrl"`
+	Color           string              `json:"color"`
+	Events          []Event             `json:"events"`
+	Next            Chapter             `json:"next"`
+	Prev            Chapter             `json:"prev"`
+	RelatedChapters []ChapterConnection `json:"relatedChapters"`
 }
 type Chapter struct {
 	Id           string     `json:"id"`
@@ -31,6 +34,13 @@ type Chapter struct {
 	Order        int        `json:"order"`
 	Range        int        `json:"range"`
 	LastUpdate   *time.Time `json:"last_update"` // Usa ponteiro para time.Time
+}
+
+type RelatedChapters struct {
+	ChapterID      string
+	RelatedChapter string
+	GroupName      string
+	GroupColor     string
 }
 
 func (c *Chapter) Save() error {
@@ -127,6 +137,7 @@ func (c *Chapter) Get() (string, error) {
 			ch.event_id, 
 			ch.timeline_id, 
 			ch.update, 
+			ch.range, 
 			ch."order", 
 			ch.last_update, 
 			ch.storyline_id,
@@ -139,7 +150,7 @@ func (c *Chapter) Get() (string, error) {
 	row := db.DB.QueryRow(query, c.Id)
 
 	// Adicione um campo "Color" no struct do Chapter, por exemplo: Color string
-	err := row.Scan(&c.Id, &c.Name, &c.Description, &c.CreatedAt, &c.PaperID, &c.WorldsID, &c.Event_Id, &c.TimelineID, &c.Update, &c.Order, &c.LastUpdate, &c.Storyline_id, &color)
+	err := row.Scan(&c.Id, &c.Name, &c.Description, &c.CreatedAt, &c.PaperID, &c.WorldsID, &c.Event_Id, &c.TimelineID, &c.Update, &c.Range, &c.Order, &c.LastUpdate, &c.Storyline_id, &color)
 	if err != nil {
 		return color, err
 	}
@@ -224,4 +235,100 @@ func GetChapteJoinTimelineByWorldId(worldId string) ([]Chapter, error) {
 		chapters = append(chapters, chapter)
 	}
 	return chapters, nil
+}
+
+func (c *Chapter) GetChapterByPaperAndOrder(order int) (*Chapter, error) {
+	query := `SELECT 
+		id, 
+		name, 
+		description, 
+		created_at, 
+		Paper_id, 
+		world_id, 
+		event_id, 
+		timeline_id, 
+		update, 
+		"order", 
+		last_update, 
+		storyline_id
+	 	FROM chapters WHERE "order" = $1 and paper_id = $2`
+
+	row := db.DB.QueryRow(query, order, c.PaperID)
+
+	var chapter Chapter
+	err := row.Scan(&chapter.Id, &chapter.Name, &chapter.Description, &chapter.CreatedAt, &chapter.PaperID, &chapter.WorldsID, &chapter.Event_Id, &chapter.TimelineID, &chapter.Update, &chapter.Order, &chapter.LastUpdate, &chapter.Storyline_id)
+	if err != nil {
+		return nil, err
+	}
+
+	return &chapter, nil
+}
+
+type ChapterConnection struct {
+	ChapterID      string `json:"chapterId"`
+	RelatedChapter struct {
+		ID   string `json:"id"`
+		Name string `json:"name"`
+	} `json:"relatedChapter"`
+	GroupName  string `json:"groupName"`
+	GroupColor string `json:"groupColor"`
+}
+
+func (c *Chapter) GetRelatedChapters() ([]ChapterConnection, error) {
+	query := `
+		SELECT
+			CASE
+				WHEN c.source_chapter_id = $1 THEN ch_target.id
+				WHEN c.target_chapter_id = $1 THEN ch_source.id
+			END AS related_chapter_id,
+			CASE
+				WHEN c.source_chapter_id = $1 THEN ch_target.name
+				WHEN c.target_chapter_id = $1 THEN ch_source.name
+			END AS related_chapter_name,
+			COALESCE(g.name, '') AS group_name,
+			COALESCE(g.color, '#000000') AS group_color
+		FROM
+			connections c
+		LEFT JOIN
+			chapters ch_source ON c.source_chapter_id = ch_source.id
+		LEFT JOIN
+			chapters ch_target ON c.target_chapter_id = ch_target.id
+		LEFT JOIN
+			group_connections g ON c.group_id = g.id
+		WHERE
+			c.source_chapter_id = $1 OR c.target_chapter_id = $1;
+	`
+
+	rows, err := db.DB.Query(query, c.Id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var connections []ChapterConnection
+	for rows.Next() {
+		var connection ChapterConnection
+		var relatedChapterID, relatedChapterName string
+
+		connection.ChapterID = c.Id
+		if err := rows.Scan(
+			&relatedChapterID,
+			&relatedChapterName,
+			&connection.GroupName,
+			&connection.GroupColor,
+		); err != nil {
+			return nil, err
+		}
+
+		connection.RelatedChapter.ID = relatedChapterID
+		connection.RelatedChapter.Name = relatedChapterName
+
+		connections = append(connections, connection)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return connections, nil
 }

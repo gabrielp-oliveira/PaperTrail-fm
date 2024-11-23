@@ -341,8 +341,20 @@ func GetChapter(C *gin.Context) {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error retrieving chapter: " + err.Error()})
 		return
 	}
-
 	var result models.ChapterDetails
+	next, err := chapter.GetChapterByPaperAndOrder(chapter.Order + 1)
+	if err == nil {
+		result.Next = *next
+	}
+	prev, err := chapter.GetChapterByPaperAndOrder(chapter.Order - 1)
+	if err == nil {
+		result.Prev = *prev
+	}
+	related, err := chapter.GetRelatedChapters()
+	if err == nil {
+		result.RelatedChapters = related
+	}
+
 	result.Chapter = chapter
 	result.Color = color
 	// Verificar e obter Timeline, se presente
