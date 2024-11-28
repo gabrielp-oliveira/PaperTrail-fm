@@ -19,6 +19,8 @@ func RegisterRoutes(server *gin.Engine) {
 	authenticated.POST("/createEvent", CreateEvent)
 	authenticatedWorlds.PUT("/updatePaper", UpdatePaper)
 	authenticated.PUT("/updateSettings", updateSettings)
+	authenticated.PUT("/updateDescription", UpdateDescription)
+	authenticated.GET("/description", GetDescription)
 	authenticated.PUT("/updatePaperList", UpdatePaperList)
 	authenticatedWorlds.GET("/getPaperList", getPaperList)
 
@@ -27,6 +29,7 @@ func RegisterRoutes(server *gin.Engine) {
 	authEvent := authenticated.Group("/").Use(middlewares.EventHandler)
 	authEvent.POST("/insertEvent", InsertEvent)
 	authEvent.DELETE("/removeEvent", RemoveEvent)
+	authenticated.DELETE("/deleteChapter", DeleteChapter)
 	authEvent.PUT("/updateEvent", UpdateEvent)
 
 	authConnection := authenticated.Group("/").Use(middlewares.ConnectionHandler)

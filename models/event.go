@@ -4,8 +4,6 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/google/uuid"
-
 	"PaperTrail-fm.com/db"
 )
 
@@ -31,7 +29,6 @@ func (ev *Event) Save() error {
 
 	if err == sql.ErrNoRows {
 		// Inserir novo evento na tabela events
-		ev.Id = uuid.New().String()
 		query := `
 			INSERT INTO events (id, name, description, range, start_range, world_id)
 			VALUES ($1, $2, $3, $4, $5, $6)

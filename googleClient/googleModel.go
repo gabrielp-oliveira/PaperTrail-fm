@@ -19,8 +19,86 @@ func ListFiles(service *drive.Service) ([]*drive.File, error) {
 	return files.Files, nil
 }
 
+func DeleteFilesInFolder(service *drive.Service, folderId string) error {
+	pageToken := ""
+	for {
+		// Listar arquivos dentro da pasta
+		query := fmt.Sprintf("'%s' in parents", folderId)
+		files, err := service.Files.List().Q(query).PageToken(pageToken).Do()
+		if err != nil {
+			return err
+		}
+
+		// Excluir os arquivos dentro da pasta
+		for _, file := range files.Files {
+			fmt.Printf("Deleting file in folder: %s\n", file.Name)
+			err := service.Files.Delete(file.Id).Do()
+			if err != nil {
+				fmt.Printf("Error deleting file %s: %v\n", file.Name, err)
+			} else {
+				fmt.Printf("Successfully deleted file: %s\n", file.Name)
+			}
+		}
+
+		// Se houver mais arquivos na pasta, continuar
+		if files.NextPageToken == "" {
+			break
+		}
+		pageToken = files.NextPageToken
+	}
+	return nil
+}
+
+// Função para deletar uma pasta vazia
+func DeleteFolder(service *drive.Service, folderId string) error {
+	// Deletar a pasta
+	fmt.Printf("Deleting folder: %s\n", folderId)
+	err := service.Files.Delete(folderId).Do()
+	if err != nil {
+		fmt.Printf("Error deleting folder %s: %v\n", folderId, err)
+		return err
+	} else {
+		fmt.Printf("Successfully deleted folder: %s\n", folderId)
+	}
+	return nil
+}
+
+func DeleteAllFilesAndFolders(service *drive.Service) error {
+	pageToken := ""
+	for {
+		// Fazendo a requisição para listar arquivos e pastas com paginação
+		files, _ := service.Files.List().Q("trashed = false").PageToken(pageToken).Do()
+
+		// Excluir arquivos
+		for _, file := range files.Files {
+			// Se for uma pasta, deletar primeiro seus arquivos internos
+			if file.MimeType == "application/vnd.google-apps.folder" {
+				DeleteFilesInFolder(service, file.Id) // Deleta os arquivos dentro da pasta
+				DeleteFolder(service, file.Id)        // Deleta a pasta
+			} else {
+				// Se for um arquivo, excluir diretamente
+				fmt.Printf("Deleting file: %s\n", file.Name)
+				err := service.Files.Delete(file.Id).Do()
+				if err != nil {
+					fmt.Printf("Error deleting file %s: %v\n", file.Name, err)
+					return err
+				} else {
+					fmt.Printf("Successfully deleted file: %s\n", file.Name)
+				}
+			}
+		}
+
+		// Se houver mais arquivos para listar
+		if files.NextPageToken == "" {
+			break
+		}
+		pageToken = files.NextPageToken
+	}
+	return nil
+}
+
 // CreateFolder cria uma pasta no Google Drive e retorna a pasta criada.
-func CreateFolder(service *drive.Service, name, parentID string) (*drive.File, error) {
+func CreateFolder(service *drive.Service, userId, name, parentID string) (*drive.File, error) {
 	// Verificar se a pasta já existe
 	query := fmt.Sprintf("name='%s' and mimeType='application/vnd.google-apps.folder' and trashed=false", name)
 	if parentID != "" {
@@ -31,17 +109,19 @@ func CreateFolder(service *drive.Service, name, parentID string) (*drive.File, e
 		return nil, fmt.Errorf("unable to check if folder exists: %v", err)
 	}
 	if len(r.Files) > 0 {
-		return nil, fmt.Errorf("folder '%s' already exists, please choose another name", name)
+		return r.Files[0], nil // Retorna a pasta existente em vez de lançar erro
 	}
 
-	// Criar a pasta
+	// Criar a nova pasta
 	folder := &drive.File{
 		Name:     name,
 		MimeType: "application/vnd.google-apps.folder",
 	}
+
 	if parentID != "" {
 		folder.Parents = []string{parentID}
 	}
+
 	folder, err = service.Files.Create(folder).Do()
 	if err != nil {
 		return nil, fmt.Errorf("unable to create folder: %v", err)
@@ -193,25 +273,31 @@ func CreateChapter(service *drive.Service, name, PaperId, userEmail string) (str
 	}
 	createdFolder, err := service.Files.Create(folder).Do()
 	if err != nil {
-		return "", fmt.Errorf("error creating folder: %w", err)
+		// Caso o arquivo não seja encontrado, retornamos um erro mais específico
+		return "", fmt.Errorf("invalid PaperId (folder not found): %w", err)
 	}
+
+	// Criar o documento diretamente dentro da pasta do Paper (livro)
 	fileMetadata := &drive.File{
 		Name:     name,
 		Parents:  []string{createdFolder.Id},
 		MimeType: "application/vnd.google-apps.document",
 	}
+
+	// Criação do documento
 	doc, err := service.Files.Create(fileMetadata).Do()
 	if err != nil {
 		return "", fmt.Errorf("error creating document: %w", err)
 	}
 
-	// Define permissões para o usuário no documento criado
+	// Definir permissões para o usuário no documento criado
 	permission := &drive.Permission{
 		Type:         "user",
 		Role:         "writer",
 		EmailAddress: userEmail,
 	}
 
+	// Aplicar as permissões ao documento
 	_, err = service.Permissions.Create(doc.Id, permission).Do()
 	if err != nil {
 		return "", fmt.Errorf("error setting document permissions: %w", err)

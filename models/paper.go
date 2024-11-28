@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"PaperTrail-fm.com/db"
+	"PaperTrail-fm.com/googleClient"
+	"github.com/google/uuid"
 	"google.golang.org/api/drive/v3"
 )
 
@@ -48,7 +50,7 @@ func (e *Paper) Save() error {
 		e.Order = newOrder
 		insertQuery := `
 		INSERT INTO Papers(id, name, description, path, created_at, world_id, "order", color) 
-		VALUES ($1, $2, $3, $4, $5, $6, $7)`
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
 		_, err = db.DB.Exec(insertQuery, e.ID, e.Name, e.Description, e.Path, e.Created_at, e.World_id, newOrder, e.Color)
 		if err != nil {
 			return fmt.Errorf("error inserting paper: %v", err)
@@ -118,7 +120,7 @@ func (paper *Paper) Update() error {
 	return err
 }
 
-func (paper *Paper) Delete() error {
+func (paper *Paper) Delete(service *drive.Service) error {
 	query := "DELETE FROM Papers WHERE id = ?"
 	stmt, err := db.DB.Prepare(query)
 
@@ -129,6 +131,19 @@ func (paper *Paper) Delete() error {
 	defer stmt.Close()
 
 	_, err = stmt.Exec(paper.ID)
+
+	if err != nil {
+		return err
+	}
+
+	err = googleClient.DeleteFilesInFolder(service, paper.ID) // Deleta os arquivos dentro da pasta
+	if err != nil {
+		return err
+	}
+	err = googleClient.DeleteFolder(service, paper.ID)
+	if err != nil {
+		return err
+	}
 	return err
 }
 
@@ -218,4 +233,25 @@ func GetPaperListByWorldId(worldId string) ([]Paper, error) {
 		Papers = append(Papers, paper)
 	}
 	return Papers, err
+}
+
+func (pp *Paper) Create() error {
+	var desc Description
+	desc.Description_data = pp.Description
+
+	descId := uuid.New().String()
+	pp.Description = descId
+	pp.Created_at = time.Now()
+	err := pp.Save()
+	desc.Id = descId
+	desc.Resource_type = "paper"
+	desc.Resource_id = pp.ID
+	if err != nil {
+		return err
+	}
+	err = desc.Save()
+	if err != nil {
+		return err
+	}
+	return nil
 }

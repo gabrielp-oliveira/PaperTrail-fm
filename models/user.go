@@ -84,7 +84,9 @@ func (u *User) updateDatabase() error {
 func (u *User) UpdateOAuthToken() (*oauth2.Token, error) {
 	var googleOauthConfig = googleClient.StartCredentials()
 	tokenGenerated, err := GenerateToken(u.Email, u.ID)
-
+	if err != nil {
+		return nil, err
+	}
 	config := googleOauthConfig
 
 	token := &oauth2.Token{

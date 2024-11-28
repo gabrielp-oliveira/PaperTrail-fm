@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"PaperTrail-fm.com/db"
+	"github.com/google/uuid"
+	"google.golang.org/api/drive/v3"
 )
 
 type ChapterDetails struct {
@@ -181,8 +183,8 @@ func (c *Chapter) RemoveTimeline() error {
 func (c *Chapter) UpdateChapter() error {
 	query := `
 	UPDATE chapters
-	SET name = $1, description = $2, "order" = $3, update = $4, last_update = $5, storyline_id = $6, timeline_id = $7, event_id = $8, range = $9
-	WHERE id = $10
+	SET name = $1, "order" = $2, update = $3, last_update = $4, storyline_id = $5, timeline_id = $6, event_id = $7, range = $8
+	WHERE id = $9
 	`
 	stmt, err := db.DB.Prepare(query)
 
@@ -202,7 +204,7 @@ func (c *Chapter) UpdateChapter() error {
 		c.Event_Id = nil
 	}
 
-	_, err = stmt.Exec(c.Name, c.Description, c.Order, c.Update, c.LastUpdate, c.Storyline_id, c.TimelineID, c.Event_Id, c.Range, c.Id)
+	_, err = stmt.Exec(c.Name, c.Order, c.Update, c.LastUpdate, c.Storyline_id, c.TimelineID, c.Event_Id, c.Range, c.Id)
 	return err
 }
 
@@ -331,4 +333,54 @@ func (c *Chapter) GetRelatedChapters() ([]ChapterConnection, error) {
 	}
 
 	return connections, nil
+}
+
+func (chp Chapter) Create() error {
+	var desc Description
+	desc.Description_data = chp.Description
+
+	descId := uuid.New().String()
+	chp.Description = descId
+	chp.CreatedAt = time.Now()
+	err := chp.Save()
+	desc.Id = descId
+	desc.Resource_type = "chapter"
+	desc.Resource_id = chp.Id
+	if err != nil {
+		return err
+	}
+	err = desc.Save()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *Chapter) DeleteConnections() error {
+	query := `DELETE FROM connections WHERE source_chapter_id = $1 OR target_chapter_id = $1`
+	_, err := db.DB.Exec(query, c.Id)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *Chapter) DeleteChapter(service *drive.Service) error {
+	err := c.DeleteConnections()
+	if err != nil {
+		return err
+	}
+	query := `DELETE FROM chapters WHERE id = $1`
+	_, err = db.DB.Exec(query, c.Id)
+	if err != nil {
+		fmt.Printf("Erro delete chapter id %s: %v", c.Id, err)
+		return err
+	}
+	err = service.Files.Delete(c.Id).Do()
+	if err != nil {
+		fmt.Printf("Erro delete file id %s: %v", c.Id, err)
+		return err
+	}
+
+	return nil
 }

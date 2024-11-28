@@ -38,7 +38,7 @@ func (ss *Subway_settings) Save() error {
 
 		insertQuery := `
 		INSERT INTO subway_settings(id, Chapter_names, zoom, x, y,display_table_chapters,storyline_update_chapter,timeline_update_chapter, World_id, group_connection_update_chapter) 
-		VALUES ($1, $2, $3,  $4, $5, $6, $7, $8)`
+		VALUES ($1, $2, $3,  $4, $5, $6, $7, $8, $9, $10)`
 		_, err := db.DB.Exec(insertQuery, ss.Id, ss.Chapter_names, roundToTwoDecimalPlaces(ss.Zomm), roundToTwoDecimalPlaces(ss.X),
 			roundToTwoDecimalPlaces(ss.Y), ss.Display_table_chapters, ss.Storyline_update_chapter, ss.Timeline_update_chapter, ss.World_id, ss.Group_connection_update_chapter)
 		if err != nil {

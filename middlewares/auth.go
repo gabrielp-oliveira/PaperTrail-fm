@@ -40,14 +40,14 @@ func Authenticate(C *gin.Context) {
 		C.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Not authorized."})
 		return
 	}
-	newToken, err := userInfo.UpdateOAuthToken()
-	if err != nil {
-		C.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "error generating access token.."})
-		return
-	}
+	// newToken, err := userInfo.UpdateOAuthToken()
+	// if err != nil {
+	// 	C.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "error generating access token.."})
+	// 	return
+	// }
 
-	C.Writer.Header().Set("accessToken", newToken.AccessToken)
-	C.Writer.Header().Set("expiry", newToken.Expiry.Format(time.RFC3339))
+	C.Writer.Header().Set("accessToken", userInfo.AccessToken)
+	C.Writer.Header().Set("expiry", userInfo.TokenExpiry.Format(time.RFC3339))
 	C.Writer.Header().Set("Access-Control-Expose-Headers", "accessToken, expiry")
 
 	C.Set("userInfo", userInfo)

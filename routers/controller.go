@@ -14,6 +14,7 @@ import (
 )
 
 func CreateWorld(C *gin.Context) {
+
 	userInfo, err := utils.GetUserInfo(C)
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error getting user info. " + err.Error()})
@@ -29,7 +30,7 @@ func CreateWorld(C *gin.Context) {
 	driveSrv := googleClient.GetAppDriveService()
 
 	if userInfo.Base_folder == "" {
-		folder, err := googleClient.CreateFolder(driveSrv, userInfo.ID, "")
+		folder, err := googleClient.CreateFolder(driveSrv, userInfo.Email, userInfo.ID, "")
 		if err != nil {
 			C.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating user base folder. " + err.Error()})
 			return
@@ -38,31 +39,31 @@ func CreateWorld(C *gin.Context) {
 		userInfo.UpdateBaseFolder()
 	}
 
-	folderId, err := googleClient.CreateFolder(driveSrv, world.Name, userInfo.Base_folder)
+	folderId, err := googleClient.CreateFolder(driveSrv, userInfo.Email, world.Name, userInfo.Base_folder)
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating world .  " + err.Error()})
 		return
 	}
+	var desc models.Description
+	desc.Description_data = world.Description
 
 	world.Id = folderId.Id
+
+	descId := uuid.New().String()
+	world.Description = descId
 	world.UserID = userInfo.ID
+	desc.Resource_id = folderId.Id
+	desc.Resource_type = "world"
 	world.CreatedAt = time.Now()
 	err = world.Save()
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error saving world .  " + err.Error()})
 		return
 	}
-
-	var strline models.StoryLine
-	_, err = strline.CreateBasicStoryLines(world.Id)
+	desc.Id = descId
+	err = desc.Save()
 	if err != nil {
-		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error saving story lines.  " + err.Error()})
-		return
-	}
-	var timeline models.Timeline
-	_, err = timeline.CreateBasicTimelines(world.Id)
-	if err != nil {
-		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error saving time lines.  " + err.Error()})
+		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error saving description .  " + err.Error()})
 		return
 	}
 
@@ -83,7 +84,93 @@ func CreateWorld(C *gin.Context) {
 		return
 	}
 
+	var paper models.Paper
+	paper.Name = "First Paper"
+	paper.Description = "First Paper"
+	paper.Order = 1
+	paper.Path = world.Name + "/" + paper.Name
+	paper.World_id = world.Id
+	folder, err := googleClient.CreateFolder(driveSrv, userInfo.Email, paper.Name, world.Id)
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error saving paper.  " + err.Error()})
+		return
+	}
+	paper.ID = folder.Id
+	err = paper.Create()
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error saving paper.  " + err.Error()})
+		return
+	}
+
+	var chapter models.Chapter
+
+	chapter.Name = "First Chapter"
+	chapter.Description = "First chapter"
+	chapter.Order = 1
+	chapter.WorldsID = world.Id
+	chapter.PaperID = paper.ID
+	chapterId, err := googleClient.CreateChapter(driveSrv, chapter.Name, chapter.PaperID, userInfo.Email)
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating chapter document.  " + err.Error()})
+		return
+	}
+	chapter.Id = chapterId
+	err = chapter.Create()
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error saving chapter.  " + err.Error()})
+		return
+	}
+	var strline models.StoryLine
+	_, err = strline.CreateBasicStoryLines(world.Id)
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error saving story lines.  " + err.Error()})
+		return
+	}
+	var timeline models.Timeline
+	_, err = timeline.CreateBasicTimelines(world.Id)
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error saving time lines.  " + err.Error()})
+		return
+	}
+
 	C.JSON(http.StatusOK, gin.H{"message": world.Name + " folder created successfully.", "worldID": world.Id, "status": "success"})
+}
+
+func DeleteChapter(C *gin.Context) {
+	chapterId := C.Query("id")
+	var chp models.Chapter
+	chp.Id = chapterId
+	if chp.Id == "" {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": "Chapter id is empty."})
+		return
+	}
+	driveSrv := googleClient.GetAppDriveService()
+	err := chp.DeleteChapter(driveSrv)
+
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": "err deletng chapter:" + err.Error()})
+		return
+
+	}
+	C.JSON(http.StatusOK, gin.H{"message": " chapter Deleted successfully.", "chapterId": chapterId, "status": "success"})
+}
+func DeletePaper(C *gin.Context) {
+	paperId := C.Query("id")
+	var pp models.Paper
+	pp.ID = paperId
+	if pp.ID == "" {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": "paper id is empty."})
+		return
+	}
+	driveSrv := googleClient.GetAppDriveService()
+	err := pp.Delete(driveSrv)
+
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": "err deletng paper:" + err.Error()})
+		return
+
+	}
+	C.JSON(http.StatusOK, gin.H{"message": " paper Deleted successfully.", "paperId": paperId, "status": "success"})
 }
 
 func CreatePaper(C *gin.Context) {
@@ -106,21 +193,7 @@ func CreatePaper(C *gin.Context) {
 
 	driveSrv := googleClient.GetAppDriveService()
 
-	// {
-	//   "type": "service_account",
-	//   "project_id": "concise-beanbag-333616",
-	//   "private_key_id": "da7151f00621767c1801e89fdbeaf4e522364b6c",
-	//   "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCR+sv60EyrL4VD\nTemLztscvLgN0hNdQBJEwgM9Nr11XH7xZMP2SmyQLeaR8Ikc/XW+5Q9TsWI35i6q\n1KC9QXX/AN7VABDz5PMB86qfcX6IseBKbXz6aqlxRf/nh7nXsEKot2Xxsz6ZfQD0\nM+zBXEeDlilyQSeUvsmogJ+LnyeckphMTpqzZtKA3r1XiLuslVMOotIDO1bxMRnn\n88EST0Czv9vrAACyy3Rwd5a2uF9v80QQkHVR9n5YR29GVvYAp/hRQKf4JPsBT7OJ\n95dcqtaxW7WyeAs7ZNz6u2Ouu/57nXnNY8fcE4CwmpNwkM8gUV8z2WYek9VY5W4P\n4gPF101PAgMBAAECggEAB2n97ySiKDWXJpZv7J5aaYi6LlWDj0JgSyaxZGwBzlKe\nzeLIwxr/jYkPQ008oYDL+KCImT8SlnU13I5FBaer9wITzyycL87qeqhl+4gXnZiv\nJAiQhuVg6rRb7WXqzeYRVKFP56krXj9Hi5+RgDaQGUJIo5lkibzw4AJ8V+qC6ARE\nWQUSbILqtoTg+7xiL3uP/Q8ZFb4V5IXsGaYYDPYqJBa52/WxG294SD4AYqtbEmZY\np+wowhb0haCIodjMkt9m7dapB8gckIIOuGjUVuCMCp+e+hkjvprPUnyXuBQuwD67\n4slTXxKYWuCa86N+CUGxl1cg/PChCUoKLntDyOlsaQKBgQDKEkuaDfe+THOV6Lfo\n+pRrwsBULNqJyGFzcwUnWZmmwm2Mh1ZxVnthxgiOoUaNxoMcQaHGPQ2EwNCPbuyX\nUuSfPLUUMCdQWBLsQX1fhgMN7wBlgVW58uCaJFwBCI9pa5vw2Qq4Zqhx3v/ftA7G\nhIyygaiKfwwYxeg+wYpm9lz9eQKBgQC48EJ/UCa59DqVj7SkGORfHYAcU2xT5mmK\nasPIq/bGpbB0LVvfzN3rYtiBg5A4DMaPsfNwQ6fmNCD7k8bwX9qDenwNHRUi8QZi\naouek48QPD+7lP6khW0noFlLI7OJYKYdlZ12BysI3DidVhrENwjx/Z/HC0Y1t1Ln\nqUtTHZqXBwKBgGav1Wt8HaG/CB3uHUdvz2zTkxkzkfrisWMR2FSe2846j6ESRYNj\nB2AwWrjgjBIQByCc2bD75ZrIwTOikuhzX2rsVrjjn5bcqwEUZrncSEEUa4cpqn7M\nRgcO4xJDX12bKavDIAeFY6Q6Rp1PyxJm2Xj9GsEGvwb3y4XYpJSeLbNBAoGAcGVk\npKd7wcwSxs7dxFV0hfIR6CUzUxJX1k3oy07n3fbY9OKUUcHapbIfTyc8QTRSgQZv\noy0bH6dS3FMFtxUqYnnQZs/kBqZhcPK8BBY9/mn/eeuljyugGVM0sZvzA2z/yD8j\nwZW9q9bbeZPZFKM2BoxTzM6nTwIpmq2jH9KAH4UCgYEAn3A9IBzHBO6H3Y2NFjwD\nb3U/Cxq+4S5KMwvdacXaj9rKwTRFlASUMCxS/tlimlUGo5fo/JwMl+HAIFfmv1VK\nhcIjPo05/RJVBHE9CfY+Sg6o6o5mBCvgRp+1BWjy4mKt9LqDl7V7MQc4+6cCGi4P\nZ2KUIPifmb7FR36hMAMVgUg=\n-----END PRIVATE KEY-----\n",
-	//   "client_email": "Papertrail@concise-beanbag-333616.iam.gserviceaccount.com",
-	//   "client_id": "102028377717608211022",
-	//   "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-	//   "token_uri": "https://oauth2.googleapis.com/token",
-	//   "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-	//   "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/Papertrail%40concise-beanbag-333616.iam.gserviceaccount.com",
-	//   "universe_domain": "googleapis.com"
-	// }
-
-	folder, err := googleClient.CreateFolder(driveSrv, paper.Name, worldsInfo.Id)
+	folder, err := googleClient.CreateFolder(driveSrv, userInfo.Email, paper.Name, worldsInfo.Id)
 
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating folder. " + err.Error()})
@@ -131,38 +204,40 @@ func CreatePaper(C *gin.Context) {
 	paper.Path = worldsInfo.Name + "/" + paper.Name
 	paper.ID = folder.Id
 	paper.Created_at = time.Now()
-	err = paper.Save()
+
+	err = paper.Create()
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	_, err = googleClient.CreateReadmeFile(driveSrv, paper.ID, "# read me content for this paper.")
-	if err != nil {
-		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating read me. " + err.Error()})
-		return
-	}
+	// _, err = googleClient.CreateReadmeFile(driveSrv, paper.ID, "# read me content for this paper.")
+	// if err != nil {
+	// 	C.JSON(http.StatusInternalServerError, gin.H{"error": "Error creating read me. " + err.Error()})
+	// 	return
+	// }
 
 	var chapter models.Chapter
 	chapter.Name = "chapter 1"
-	chapter.PaperID = paper.ID
+	chapter.PaperID = folder.Id
 	chapter.WorldsID = worldsInfo.Id
-	chapter.Description = "First chapter from " + paper.Name
 	chapter.CreatedAt = time.Now()
-	chapterId, err := googleClient.CreateChapter(driveSrv, chapter.Name, chapter.PaperID, userInfo.Email)
+	chapterId, err := googleClient.CreateChapter(driveSrv, chapter.Name, folder.Id, userInfo.Email)
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error " + err.Error()})
 		return
 	}
 	chapter.Id = chapterId
-
+	chapter.Order = 1
 	chapter.TimelineID = nil
 	chapter.Event_Id = nil
 
-	err = chapter.Save()
+	err = chapter.Create()
+
 	if err != nil {
-		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error " + err.Error()})
+		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
 	log.Println("Repository successfully uploaded to Google Drive")
 	type PaperChapter struct {
 		models.Paper
@@ -183,7 +258,18 @@ func CreateEvent(C *gin.Context) {
 		C.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	err := event.Save()
+	var desc models.Description
+	Id := uuid.New().String()
+	event.Id = Id
+	desc.Resource_id = Id
+
+	err := desc.CreateInitialDescription("event")
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	event.Description = desc.Id
+	err = event.Save()
 	if err != nil {
 		C.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -234,7 +320,23 @@ func CreateChapter(C *gin.Context) {
 
 	// Atualiza o ID do capítulo e salva
 	chapter.Id = docId
+	// err = chapter.Save()
+
+	descId := uuid.New().String()
+	var desc models.Description
+	desc.Description_data = chapter.Description
+	chapter.Description = descId
+
 	err = chapter.Save()
+	desc.Id = descId
+	desc.Resource_type = "chapter"
+	desc.Resource_id = docId
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	err = desc.Save()
+
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error saving chapter: " + err.Error()})
 		return
@@ -502,6 +604,37 @@ func UpdatePaper(C *gin.Context) {
 	C.JSON(http.StatusOK, paper)
 
 }
+
+func GetDescription(C *gin.Context) {
+	var d models.Description // Suponha que `Element` é a estrutura de seus elementos
+	var resource_id = C.Query("resource_id")
+
+	if resource_id == "" {
+		C.JSON(http.StatusBadRequest, gin.H{"error": "resource_id empty"})
+		return
+	}
+	d.Resource_id = resource_id
+	err := d.GetByResourceId()
+	if err != nil {
+		C.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	C.JSON(http.StatusOK, d)
+}
+func UpdateDescription(C *gin.Context) {
+	var d models.Description // Suponha que `Element` é a estrutura de seus elementos
+
+	if err := C.ShouldBindJSON(&d); err != nil {
+		C.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	err := d.Update()
+	if err != nil {
+		C.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	C.JSON(http.StatusOK, d)
+}
 func updateSettings(C *gin.Context) {
 	var ss models.Subway_settings // Suponha que `Element` é a estrutura de seus elementos
 
@@ -619,9 +752,23 @@ func CreateTimeline(C *gin.Context) {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	id := uuid.New().String()
-	tl.Id = id
+	timelineID := uuid.New().String()
+	var desc models.Description
+	desc.Description_data = tl.Description
+
+	tl.Id = timelineID
+	descId := uuid.New().String()
+	tl.Description = descId
+
 	err = tl.Save()
+	desc.Id = descId
+	desc.Resource_type = "timeline"
+	desc.Resource_id = timelineID
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	err = desc.Save()
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -638,7 +785,15 @@ func CreateStoryline(C *gin.Context) {
 	id := uuid.New().String()
 	stl.Id = id
 	stl.Created_at = time.Now()
-
+	var desc models.Description
+	desc.Description_data = stl.Description
+	desc.Resource_id = id
+	err = desc.CreateInitialDescription("storyline")
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	stl.Description = desc.Id
 	err = stl.Save()
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -787,7 +942,17 @@ func CreateGroupConnection(C *gin.Context) {
 	id := uuid.New().String()
 
 	gc.Id = id
-	err := gc.Save()
+
+	var desc models.Description
+	desc.Resource_id = id
+	desc.Description_data = gc.Description
+	err := desc.CreateInitialDescription("group_connection")
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	gc.Description = desc.Id
+	err = gc.Save()
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

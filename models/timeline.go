@@ -104,6 +104,28 @@ func (t *Timeline) Delete() error {
 	return nil
 }
 
+func (tl Timeline) Create() error {
+	timelineID := uuid.New().String()
+	var desc Description
+	desc.Description_data = tl.Description
+
+	tl.Id = timelineID
+	descId := uuid.New().String()
+	tl.Description = descId
+
+	err := tl.Save()
+	desc.Id = descId
+	desc.Resource_type = "timeline"
+	desc.Resource_id = timelineID
+	if err != nil {
+		return err
+	}
+	err = desc.Save()
+	if err != nil {
+		return err
+	}
+	return nil
+}
 func (t Timeline) CreateBasicTimelines(wiD string) ([]Timeline, error) {
 	var TimelineList []Timeline
 
@@ -112,40 +134,36 @@ func (t Timeline) CreateBasicTimelines(wiD string) ([]Timeline, error) {
 	tmLine1.Description = "start time line"
 	tmLine1.WorldsID = wiD
 	tmLine1.Order = 1
-	tmLine1.Range = 10
-
-	id := uuid.New().String()
-
-	tmLine1.Id = id
-	TimelineList = append(TimelineList, tmLine1)
-	err := tmLine1.Save()
+	tmLine1.Range = 15
+	tmLine1.Id = uuid.New().String()
+	err := tmLine1.Create()
 	if err != nil {
-		return nil, fmt.Errorf("error removing Timeline: %v", err)
+		return nil, fmt.Errorf("error creating Timeline: %v", err)
 	}
+	TimelineList = append(TimelineList, tmLine1)
 
 	var tmLine2 Timeline
 	tmLine2.Name = "seccond"
 	tmLine2.Description = "Seccondary time line"
 	tmLine2.WorldsID = wiD
 	tmLine2.Order = 2
-	tmLine2.Range = 10
-	id = uuid.New().String()
-	tmLine2.Id = id
-	err = tmLine2.Save()
+	tmLine2.Range = 15
+	tmLine2.Id = uuid.New().String()
+	err = tmLine2.Create()
 	if err != nil {
-		return nil, fmt.Errorf("error removing Timeline: %v", err)
+		return nil, fmt.Errorf("error creating Timeline: %v", err)
 	}
+
 	TimelineList = append(TimelineList, tmLine2)
 	var tmLine3 Timeline
 	tmLine3.Name = "third"
 	tmLine3.Description = "third time line"
 	tmLine3.WorldsID = wiD
 	tmLine3.Order = 3
-	tmLine3.Range = 10
-	id = uuid.New().String()
+	tmLine3.Range = 15
 
-	tmLine3.Id = id
-	err = tmLine3.Save()
+	tmLine3.Id = uuid.New().String()
+	err = tmLine3.Create()
 	if err != nil {
 		return nil, fmt.Errorf("error removing Timeline: %v", err)
 	}
@@ -155,12 +173,10 @@ func (t Timeline) CreateBasicTimelines(wiD string) ([]Timeline, error) {
 	tmLine4.Description = "fourth time line"
 	tmLine4.WorldsID = wiD
 	tmLine4.Order = 4
-	tmLine4.Range = 10
+	tmLine4.Range = 15
 
-	id = uuid.New().String()
-
-	tmLine4.Id = id
-	err = tmLine4.Save()
+	tmLine4.Id = uuid.New().String()
+	err = tmLine4.Create()
 	if err != nil {
 		return nil, fmt.Errorf("error removing Timeline: %v", err)
 	}
@@ -170,12 +186,10 @@ func (t Timeline) CreateBasicTimelines(wiD string) ([]Timeline, error) {
 	tmLine5.Description = "fifth time line"
 	tmLine5.WorldsID = wiD
 	tmLine5.Order = 5
-	tmLine5.Range = 10
+	tmLine5.Range = 15
 
-	id = uuid.New().String()
-
-	tmLine5.Id = id
-	err = tmLine5.Save()
+	tmLine5.Id = uuid.New().String()
+	err = tmLine5.Create()
 	if err != nil {
 		return nil, fmt.Errorf("error removing Timeline: %v", err)
 	}

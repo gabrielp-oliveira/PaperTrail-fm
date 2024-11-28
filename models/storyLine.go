@@ -142,58 +142,74 @@ func (t *StoryLine) Delete() error {
 	return nil
 }
 
+func (str StoryLine) Create() error {
+
+	var desc Description
+	descId := uuid.New().String()
+	desc.Description_data = str.Description
+	str.Description = descId
+	str.Created_at = time.Now()
+	desc.Id = descId
+	desc.Resource_id = str.Id
+	desc.Resource_type = "storyline"
+	err := desc.Save()
+	if err != nil {
+		return err
+	}
+	err = str.Save()
+	if err != nil {
+		return err
+	}
+	return nil
+
+}
 func (t StoryLine) CreateBasicStoryLines(wiD string) ([]StoryLine, error) {
 	var storyLinesList []StoryLine
 
-	var str1 StoryLine
-	str1.Name = "Main"
-	str1.Description = "Main story line"
-	str1.WorldID = wiD
-	str1.Order = 1
+	var str StoryLine
+	str.Name = "Villain"
+	str.Description = "Villain story line"
+	str.WorldID = wiD
+	str.Order = 1
 	id := uuid.New().String()
-	str1.Id = id
-	str1.Created_at = time.Now()
-	storyLinesList = append(storyLinesList, str1)
-	err := str1.Save()
+	str.Id = id
+	storyLinesList = append(storyLinesList, str)
+	err := str.Create()
 	if err != nil {
 		return nil, fmt.Errorf("error creating storyLine: %v", err)
 	}
 
 	var str2 StoryLine
-	str2.Name = "Seccondary"
-	str2.Description = "Seccondary story line"
+	str2.Name = "Main"
+	str2.Description = "Main story line"
 	str2.WorldID = wiD
 	str2.Order = 2
 	id = uuid.New().String()
-	str2.Created_at = time.Now()
 	str2.Id = id
-	err = str2.Save()
+	err = str2.Create()
 	if err != nil {
 		return nil, fmt.Errorf("error creating storyLine: %v", err)
 	}
 	storyLinesList = append(storyLinesList, str2)
 	var str3 StoryLine
-	str3.Name = "Dominant"
-	str3.Description = "Dominant story line"
+	str3.Name = "Extra"
+	str3.Description = "Extra story line"
 	str3.WorldID = wiD
 	str3.Order = 3
 	id = uuid.New().String()
 	str3.Id = id
-	str3.Created_at = time.Now()
-	err = str3.Save()
+	err = str3.Create()
 	if err != nil {
 		return nil, fmt.Errorf("error creating storyLine: %v", err)
 	}
 	storyLinesList = append(storyLinesList, str3)
 	var str4 StoryLine
-	str4.Name = "Extra"
-	str4.Description = "Extra story line"
+	str4.Name = "Seccondary"
 	str4.WorldID = wiD
 	str4.Order = 4
 	id = uuid.New().String()
 	str4.Id = id
-	str4.Created_at = time.Now()
-	err = str4.Save()
+	err = str4.Create()
 	if err != nil {
 		return nil, fmt.Errorf("error creating storyLine: %v", err)
 	}

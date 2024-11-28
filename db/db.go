@@ -99,8 +99,7 @@ func createTables(db *sql.DB) {
 			FOREIGN KEY (world_id) REFERENCES worlds(id),
 			FOREIGN KEY (storyline_id) REFERENCES storyLines(id) ON DELETE SET NULL,
 			FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE SET NULL
-		);
-	`,
+		);`,
 		`CREATE TABLE IF NOT EXISTS storyLines (
 			id TEXT PRIMARY KEY,
 			name TEXT,
@@ -109,15 +108,26 @@ func createTables(db *sql.DB) {
 			world_id TEXT,
 			"order" integer,
 			FOREIGN KEY (world_id) REFERENCES worlds(id)
-		);
-	`,
+		);`,
+		`CREATE TABLE IF NOT EXISTS description_rules (
+			id TEXT PRIMARY KEY,            
+			resource VARCHAR(50) NOT NULL,    
+			max_pages INT NOT NULL,           
+			CONSTRAINT resource_unique UNIQUE (resource)
+		);`,
+		`CREATE TABLE  IF NOT EXISTS descriptions (
+			id TEXT PRIMARY KEY,              
+			resource_id TEXT NOT NULL,             
+			resource_type VARCHAR(50) NOT NULL,
+			description_data TEXT NOT NULL
+		);`,
 
 		`CREATE TABLE IF NOT EXISTS connections (
 			id TEXT PRIMARY KEY,
 			source_chapter_id TEXT NOT NULL,
 			target_chapter_id TEXT NOT NULL,
 			world_id TEXT,
-    		group_id TEXT DEFAULT '',
+			group_id TEXT DEFAULT '',
 			FOREIGN KEY (source_chapter_id) REFERENCES chapters(id),
 			FOREIGN KEY (target_chapter_id) REFERENCES chapters(id),
 			FOREIGN KEY (world_id) REFERENCES worlds(id)
@@ -129,8 +139,7 @@ func createTables(db *sql.DB) {
 			name TEXT,
 			description TEXT,
 			FOREIGN KEY (world_id) REFERENCES worlds(id)
-		);
-`,
+		);`,
 		`CREATE TABLE IF NOT EXISTS subway_settings (
 			id TEXT PRIMARY KEY,
 			chapter_names BOOLEAN,
@@ -143,9 +152,7 @@ func createTables(db *sql.DB) {
 			y REAL,          
 			world_id TEXT,
 			FOREIGN KEY (world_id) REFERENCES worlds(id)
-		);
-
-		`,
+		);`,
 	}
 
 	for _, query := range createTables {
@@ -157,3 +164,12 @@ func createTables(db *sql.DB) {
 
 	fmt.Println("Tabelas criadas com sucesso!")
 }
+
+// INSERT INTO description_rules (resource, page_limit)
+// VALUES
+// ('paper', 2),
+// ('chapter', 2),
+// ('storyline', 1);
+// ('group_connection', 1);
+// ('timeline', 1);
+// ('world', 2);
