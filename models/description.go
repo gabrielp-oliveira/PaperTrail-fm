@@ -101,10 +101,11 @@ func (d *Description) GetByResourceId() error {
 }
 func (d *Description) Update() error {
 	query := `
-	UPDATE chapters
-	SET, description_data = $1
-	WHERE id = $2
+	UPDATE descriptions
+	SET description_data = $1
+	WHERE resource_id = $2 
 	`
+
 	stmt, err := db.DB.Prepare(query)
 
 	if err != nil {
@@ -113,7 +114,7 @@ func (d *Description) Update() error {
 
 	defer stmt.Close()
 
-	_, err = stmt.Exec(d.Description_data, d.Id)
+	_, err = stmt.Exec(d.Description_data, d.Resource_id)
 	return err
 }
 

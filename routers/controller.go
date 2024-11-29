@@ -133,7 +133,7 @@ func CreateWorld(C *gin.Context) {
 		return
 	}
 
-	C.JSON(http.StatusOK, gin.H{"message": world.Name + " folder created successfully.", "worldID": world.Id, "status": "success"})
+	C.JSON(http.StatusOK, gin.H{"message": world.Name + " folder created successfully.", "world": world, "status": "success"})
 }
 
 func DeleteChapter(C *gin.Context) {
