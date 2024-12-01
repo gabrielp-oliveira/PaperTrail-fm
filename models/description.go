@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"PaperTrail-fm.com/db"
+	"github.com/google/uuid"
 )
 
 type DescriptionRules struct {
@@ -21,11 +22,11 @@ type Description struct {
 }
 
 func (d *Description) CreateInitialDescription(resource_type string) error {
-	var desc Description
-	desc.Resource_id = d.Id
-	desc.Resource_type = resource_type
+	id := uuid.New().String()
+	d.Id = id
+	d.Resource_type = resource_type
 
-	err := desc.Save()
+	err := d.Save()
 	if err != nil {
 		return err
 	}

@@ -26,7 +26,7 @@ type Chapter struct {
 	WorldsID     string     `json:"world_id"`
 	Name         string     `json:"name"`
 	Description  string     `json:"description"`
-	CreatedAt    time.Time  `json:"created_at"`
+	Created_At   time.Time  `json:"created_at"`
 	PaperID      string     `json:"paper_id"`
 	Event_Id     *string    `json:"event_Id"`
 	TimelineID   *string    `json:"timeline_id"`
@@ -61,7 +61,7 @@ func (c *Chapter) Save() error {
 		// Se não há linhas (capítulo não existe), insere um novo registro
 
 		var maxOrder *int
-		orderQuery := `SELECT MAX("order") FROM chapters WHERE world_id = $1 and Paper_id = $2`
+		orderQuery := `SELECT MAX("order") FROM chapters WHERE world_id = $1 and paper_id = $2`
 		err := db.DB.QueryRow(orderQuery, c.WorldsID, c.PaperID).Scan(&maxOrder)
 		if err != nil {
 			return fmt.Errorf("error getting max order: %v", err)
@@ -78,7 +78,7 @@ func (c *Chapter) Save() error {
 		insertQuery := `
 		INSERT INTO chapters(id, name, description, created_at, Paper_id, world_id, event_id, timeline_id, "order") 
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`
-		_, err = db.DB.Exec(insertQuery, c.Id, c.Name, c.Description, c.CreatedAt, c.PaperID, c.WorldsID, c.Event_Id, c.TimelineID, newOrder)
+		_, err = db.DB.Exec(insertQuery, c.Id, c.Name, c.Description, c.Created_At, c.PaperID, c.WorldsID, c.Event_Id, c.TimelineID, newOrder)
 		if err != nil {
 			return fmt.Errorf("error inserting chapter: %v", err)
 		}
@@ -96,7 +96,7 @@ func GetChapterByID(id string) (*Chapter, error) {
 	row := db.DB.QueryRow(query, id)
 
 	var chapter Chapter
-	err := row.Scan(&chapter.Id, &chapter.Name, &chapter.Description, &chapter.CreatedAt, &chapter.PaperID, &chapter.WorldsID, &chapter.Event_Id, &chapter.TimelineID)
+	err := row.Scan(&chapter.Id, &chapter.Name, &chapter.Description, &chapter.Created_At, &chapter.PaperID, &chapter.WorldsID, &chapter.Event_Id, &chapter.TimelineID)
 	if err != nil {
 		return nil, err
 	}
@@ -152,7 +152,7 @@ func (c *Chapter) Get() (string, error) {
 	row := db.DB.QueryRow(query, c.Id)
 
 	// Adicione um campo "Color" no struct do Chapter, por exemplo: Color string
-	err := row.Scan(&c.Id, &c.Name, &c.Description, &c.CreatedAt, &c.PaperID, &c.WorldsID, &c.Event_Id, &c.TimelineID, &c.Update, &c.Range, &c.Order, &c.LastUpdate, &c.Storyline_id, &color)
+	err := row.Scan(&c.Id, &c.Name, &c.Description, &c.Created_At, &c.PaperID, &c.WorldsID, &c.Event_Id, &c.TimelineID, &c.Update, &c.Range, &c.Order, &c.LastUpdate, &c.Storyline_id, &color)
 	if err != nil {
 		return color, err
 	}
@@ -229,7 +229,7 @@ func GetChapteJoinTimelineByWorldId(worldId string) ([]Chapter, error) {
 		var chapter Chapter
 
 		// Faz o Scan para capturar os campos da tabela chapters
-		if err := rows.Scan(&chapter.Id, &chapter.Name, &chapter.Description, &chapter.CreatedAt,
+		if err := rows.Scan(&chapter.Id, &chapter.Name, &chapter.Description, &chapter.Created_At,
 			&chapter.PaperID, &chapter.WorldsID, &chapter.Event_Id, &chapter.Storyline_id, &chapter.TimelineID, &chapter.Order, &chapter.Range); err != nil {
 			return nil, err
 		}
@@ -258,7 +258,7 @@ func (c *Chapter) GetChapterByPaperAndOrder(order int) (*Chapter, error) {
 	row := db.DB.QueryRow(query, order, c.PaperID)
 
 	var chapter Chapter
-	err := row.Scan(&chapter.Id, &chapter.Name, &chapter.Description, &chapter.CreatedAt, &chapter.PaperID, &chapter.WorldsID, &chapter.Event_Id, &chapter.TimelineID, &chapter.Update, &chapter.Order, &chapter.LastUpdate, &chapter.Storyline_id)
+	err := row.Scan(&chapter.Id, &chapter.Name, &chapter.Description, &chapter.Created_At, &chapter.PaperID, &chapter.WorldsID, &chapter.Event_Id, &chapter.TimelineID, &chapter.Update, &chapter.Order, &chapter.LastUpdate, &chapter.Storyline_id)
 	if err != nil {
 		return nil, err
 	}
@@ -341,7 +341,8 @@ func (chp Chapter) Create() error {
 
 	descId := uuid.New().String()
 	chp.Description = descId
-	chp.CreatedAt = time.Now()
+	chp.Created_At = time.Now()
+
 	err := chp.Save()
 	desc.Id = descId
 	desc.Resource_type = "chapter"

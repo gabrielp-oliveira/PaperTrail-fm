@@ -2,6 +2,7 @@ package models
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 
 	"PaperTrail-fm.com/db"
@@ -87,11 +88,22 @@ func GetTimelinesByWorldId(worldId string) ([]Timeline, error) {
 }
 
 func (t *Timeline) Delete() error {
-	query := `SELECT id FROM timelines WHERE id = $1`
-	err := db.DB.QueryRow(query, t.Id).Scan(&t.Id)
+	query := `SELECT world_id FROM timelines WHERE id = $1`
+	err := db.DB.QueryRow(query, t.Id).Scan(&t.WorldsID)
 
 	if err != nil && err != sql.ErrNoRows {
 		return fmt.Errorf("error checking Timeline existence: %v", err)
+	}
+
+	var count int
+	query = `SELECT COUNT(*) FROM timelines WHERE world_id = $1`
+
+	err = db.DB.QueryRow(query, t.WorldsID).Scan(&count)
+	if err != nil {
+		return err
+	}
+	if count <= 3 {
+		return errors.New("you should have at least three timelines")
 	}
 
 	query = `DELETE FROM timelines WHERE id = $1`

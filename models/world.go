@@ -11,7 +11,7 @@ import (
 type World struct {
 	Id          string    `json:"id"`
 	Name        string    `json:"name"`
-	CreatedAt   time.Time `json:"created_at"`
+	Created_At  time.Time `json:"created_at"`
 	UserID      string    `json:"user_id"`
 	Description string    `json:"description"`
 }
@@ -43,7 +43,7 @@ func (rp *World) Save() error {
 		insertQuery := `
 		INSERT INTO worlds(id, name, description, created_at, user_id) 
 		VALUES ($1, $2, $3, $4, $5)`
-		_, err := db.DB.Exec(insertQuery, rp.Id, rp.Name, rp.Description, rp.CreatedAt, rp.UserID)
+		_, err := db.DB.Exec(insertQuery, rp.Id, rp.Name, rp.Description, rp.Created_At, rp.UserID)
 		if err != nil {
 			return fmt.Errorf("error inserting world: %v", err)
 		}
@@ -61,7 +61,7 @@ func (w *World) Get() error {
 
 	row := db.DB.QueryRow(query, w.Id)
 
-	err := row.Scan(&w.Id, &w.Name, &w.Description, &w.CreatedAt)
+	err := row.Scan(&w.Id, &w.Name, &w.Description, &w.Created_At)
 	if err != nil {
 		return err
 	}
@@ -94,6 +94,14 @@ func (rp *World) GetPaperList() ([]Paper, error) {
 }
 
 // Obtém capítulos, conexões, eventos e timelines associados ao Worlds
+
+func (rp *World) GetConnections() ([]Connection, error) {
+	connections, err := GetConnectionsListByWorldId(rp.Id)
+	if err != nil {
+		return nil, err
+	}
+	return connections, nil
+}
 func (rp *World) GetWorldData() (Env, error) {
 
 	env := Env{}
@@ -154,4 +162,23 @@ func (rp *World) GetWorldChapters() ([]Chapter, error) {
 	}
 
 	return chapters, nil
+}
+
+func (w *World) Update() error {
+	// id, name, description, range, "order"
+
+	query := `
+	UPDATE worlds
+	SET name = $1 WHERE id = $3
+	`
+	stmt, err := db.DB.Prepare(query)
+
+	if err != nil {
+		return err
+	}
+
+	defer stmt.Close()
+
+	_, err = stmt.Exec(w.Name)
+	return err
 }

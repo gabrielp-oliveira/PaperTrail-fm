@@ -2,6 +2,7 @@ package models
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 
 	"PaperTrail-fm.com/db"
@@ -18,26 +19,22 @@ type GroupConnection struct {
 func (gc *GroupConnection) Save() error {
 	var id string
 
-	// Verificar se a conexão já existe na tabela connections
 	query := `SELECT id FROM group_connections WHERE name = $1`
-	err := db.DB.QueryRow(query, gc.Id).Scan(&id)
+	err := db.DB.QueryRow(query, gc.Name).Scan(&id)
 
 	if err != nil && err != sql.ErrNoRows {
 		return fmt.Errorf("error checking connection existence: %v", err)
 	}
 
 	if err == sql.ErrNoRows {
-		// Inserir nova conexão na tabela connections
 		query := `
-		INSERT INTO group_connections (id, name, description,color, world_id)
-		VALUES ($1, $2, $3, $4, $5)
-	`
-		_, err := db.DB.Exec(query, gc.Id, gc.Name, gc.Description, gc.Color, gc, gc.World_id)
+		INSERT INTO group_connections (id, name, description, color, world_id)
+		VALUES ($1, $2, $3, $4, $5)`
+		_, err := db.DB.Exec(query, gc.Id, gc.Name, gc.Description, gc.Color, gc.World_id)
 		if err != nil {
 			return fmt.Errorf("error inserting group_connections: %v", err)
 		}
 
-		fmt.Println("Inserted new group_connections into database")
 	} else {
 		return fmt.Errorf("group_connections already exists in database")
 	}
@@ -70,6 +67,29 @@ func GetConnectionsGroupListByWorldId(worldId string) ([]GroupConnection, error)
 	return groupConnections, err
 }
 
+func (gc *GroupConnection) Delete() error {
+
+	query := `SELECT world_id FROM group_connections WHERE id = $1`
+	err := db.DB.QueryRow(query, gc.Id).Scan(&gc.World_id)
+
+	if err != nil && err != sql.ErrNoRows {
+		return errors.New("error checking connection existence: " + err.Error())
+	}
+	query = `DELETE FROM group_connections WHERE id = $1;`
+	_, err = db.DB.Exec(query, gc.Id)
+	if err != nil {
+		return errors.New("error removing connection: " + err.Error())
+	}
+
+	query = `UPDATE connections SET group_id = $1 WHERE group_id = $2`
+	var id = ""
+	_, err = db.DB.Exec(query, id, gc.Id)
+	if err != nil {
+		return fmt.Errorf("error updating connections: %v", err)
+	}
+
+	return nil
+}
 func (gc *GroupConnection) Update() error {
 
 	query := `

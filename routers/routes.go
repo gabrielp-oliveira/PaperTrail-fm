@@ -13,6 +13,7 @@ func RegisterRoutes(server *gin.Engine) {
 	authenticated.POST("/createWorld", CreateWorld)
 	authenticated.GET("/getWorldsList", GetWorldsList)
 	authenticated.GET("/world", GetWorldData)
+	authenticated.PUT("/updateWorld", UpdateWorld)
 
 	authenticatedWorlds := authenticated.Group("/").Use(middlewares.WorldInfo)
 	authenticatedWorlds.POST("/createPaper", CreatePaper)
@@ -37,6 +38,7 @@ func RegisterRoutes(server *gin.Engine) {
 	authenticated.POST("/createGroupConnection", CreateGroupConnection)
 	authenticated.PUT("/updateConnection", UpdateConnection)
 	authenticated.PUT("/updateGroupConnection", UpdateGroupConnection)
+	authenticated.DELETE("/deleteGroupConnection", DeleteGroupConnection)
 
 	authConnection.POST("/removeConnection", RemoveConnection)
 	// authenticatedPaper.GET("/paper", GetPaper)

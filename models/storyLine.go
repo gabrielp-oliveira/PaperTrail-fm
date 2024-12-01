@@ -2,6 +2,7 @@ package models
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -92,12 +93,23 @@ func GetstoryLinesByWorldId(worldId string) ([]StoryLine, error) {
 
 func (t *StoryLine) Delete() error {
 	// Verificar se o StoryLine existe
-	query := `SELECT id FROM storyLines WHERE id = $1`
-	err := db.DB.QueryRow(query, t.Id).Scan(&t.Id)
+	query := `SELECT world_id FROM storyLines WHERE id = $1`
+	err := db.DB.QueryRow(query, t.Id).Scan(&t.WorldID)
 	if err == sql.ErrNoRows {
 		return fmt.Errorf("StoryLine com id %s não existe", t.Id)
 	} else if err != nil {
-		return fmt.Errorf("Erro ao verificar a existência do StoryLine: %v", err)
+		return fmt.Errorf("erro chicking  StoryLine: %v", err)
+	}
+
+	var count int
+	query = `SELECT COUNT(*) FROM storylines WHERE world_id = $1`
+
+	err = db.DB.QueryRow(query, t.WorldID).Scan(&count)
+	if err != nil {
+		return err
+	}
+	if count <= 2 {
+		return errors.New("you should have at least two storylines")
 	}
 
 	// Encontrar IDs dos capítulos associados ao StoryLine
@@ -223,8 +235,8 @@ func (t *StoryLine) Update() error {
 
 	query := `
 	UPDATE storylines
-	SET name = $1, description = $2, "order" = $3
-	WHERE id = $4
+	SET name = $1,"order" = $2
+	WHERE id = $3
 	`
 	stmt, err := db.DB.Prepare(query)
 
@@ -234,7 +246,7 @@ func (t *StoryLine) Update() error {
 
 	defer stmt.Close()
 
-	_, err = stmt.Exec(t.Name, t.Description, t.Order, t.Id)
+	_, err = stmt.Exec(t.Name, t.Order, t.Id)
 	return err
 }
 
@@ -253,4 +265,25 @@ func (str *StoryLine) Get() error {
 		return err
 	}
 	return nil
+}
+
+func (str *StoryLine) GetChapters() ([]Chapter, error) {
+
+	query := `SELECT * FROM chapters WHERE storyline_id = $1`
+	rows, err := db.DB.Query(query, str.Id)
+	if err != nil {
+		return nil, err
+	}
+	chapterList := []Chapter{}
+	defer rows.Close()
+
+	for rows.Next() {
+		var chapter Chapter
+		if err := rows.Scan(&chapter.Id, &chapter.Name, &chapter.Order, &chapter.Description, &chapter.PaperID, &chapter.WorldsID, &chapter.Created_At, &chapter.Order); err != nil {
+			return nil, err
+		}
+		chapterList = append(chapterList, chapter)
+	}
+
+	return chapterList, nil
 }

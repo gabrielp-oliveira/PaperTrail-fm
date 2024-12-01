@@ -54,7 +54,7 @@ func CreateWorld(C *gin.Context) {
 	world.UserID = userInfo.ID
 	desc.Resource_id = folderId.Id
 	desc.Resource_type = "world"
-	world.CreatedAt = time.Now()
+	world.Created_At = time.Now()
 	err = world.Save()
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error saving world .  " + err.Error()})
@@ -148,11 +148,11 @@ func DeleteChapter(C *gin.Context) {
 	err := chp.DeleteChapter(driveSrv)
 
 	if err != nil {
-		C.JSON(http.StatusInternalServerError, gin.H{"error": "err deletng chapter:" + err.Error()})
+		C.JSON(http.StatusInternalServerError, gin.H{"error": "error deletng chapter:" + err.Error()})
 		return
 
 	}
-	C.JSON(http.StatusOK, gin.H{"message": " chapter Deleted successfully.", "chapterId": chapterId, "status": "success"})
+	C.JSON(http.StatusOK, chp)
 }
 func DeletePaper(C *gin.Context) {
 	paperId := C.Query("id")
@@ -203,8 +203,6 @@ func CreatePaper(C *gin.Context) {
 	paper.World_id = worldsInfo.Id
 	paper.Path = worldsInfo.Name + "/" + paper.Name
 	paper.ID = folder.Id
-	paper.Created_at = time.Now()
-
 	err = paper.Create()
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -220,7 +218,7 @@ func CreatePaper(C *gin.Context) {
 	chapter.Name = "chapter 1"
 	chapter.PaperID = folder.Id
 	chapter.WorldsID = worldsInfo.Id
-	chapter.CreatedAt = time.Now()
+	chapter.Created_At = time.Now()
 	chapterId, err := googleClient.CreateChapter(driveSrv, chapter.Name, folder.Id, userInfo.Email)
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": "Error " + err.Error()})
@@ -327,7 +325,7 @@ func CreateChapter(C *gin.Context) {
 	desc.Description_data = chapter.Description
 	chapter.Description = descId
 
-	err = chapter.Save()
+	err = chapter.Create()
 	desc.Id = descId
 	desc.Resource_type = "chapter"
 	desc.Resource_id = docId
@@ -604,6 +602,21 @@ func UpdatePaper(C *gin.Context) {
 	C.JSON(http.StatusOK, paper)
 
 }
+func UpdateWorld(C *gin.Context) {
+	var w models.World // Suponha que `Element` é a estrutura de seus elementos
+
+	if err := C.ShouldBindJSON(&w); err != nil {
+		C.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	err := w.Update()
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	C.JSON(http.StatusOK, w)
+
+}
 
 func GetDescription(C *gin.Context) {
 	var d models.Description // Suponha que `Element` é a estrutura de seus elementos
@@ -814,6 +827,17 @@ func UpdateTimeline(C *gin.Context) {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	var desc models.Description
+	desc.Resource_type = "timeline"
+	desc.Resource_id = tl.Id
+	desc.Description_data = tl.Description
+	err = desc.Update()
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
 	C.JSON(http.StatusOK, tl)
 }
 func UpdateTimelineList(C *gin.Context) {
@@ -844,6 +868,15 @@ func UpdateStoryline(C *gin.Context) {
 	}
 
 	err = stl.Update()
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	var desc models.Description
+	desc.Resource_type = "storyline"
+	desc.Resource_id = stl.Id
+	desc.Description_data = stl.Description
+	err = desc.Update()
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -892,6 +925,7 @@ func DeleteStoryline(C *gin.Context) {
 	}
 
 	var stl models.StoryLine
+
 	stl.Id = stlId
 
 	err = stl.Delete()
@@ -901,13 +935,40 @@ func DeleteStoryline(C *gin.Context) {
 		return
 	}
 
-	environment, err := worlds.GetWorldData()
+	chapters, err := worlds.GetWorldChapters()
+	// environment, err := worlds.GetWorldData()
 	if err != nil {
 		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	C.JSON(http.StatusOK, environment)
+	C.JSON(http.StatusOK, chapters)
+
+}
+func DeleteGroupConnection(C *gin.Context) {
+	gcId := C.Query("id")
+
+	var gc models.GroupConnection
+
+	gc.Id = gcId
+
+	err := gc.Delete()
+
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	var world models.World
+	world.Id = gc.World_id
+
+	connections, err := world.GetConnections()
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	C.JSON(http.StatusOK, connections)
 
 }
 func RemoveConnection(C *gin.Context) {
@@ -990,6 +1051,15 @@ func UpdateGroupConnection(C *gin.Context) {
 	err := gc.Update()
 	if err != nil {
 		C.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	var desc models.Description
+	desc.Resource_type = "group_connection"
+	desc.Resource_id = gc.Id
+	desc.Description_data = gc.Description
+	err = desc.Update()
+	if err != nil {
+		C.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	C.JSON(http.StatusOK, gc)

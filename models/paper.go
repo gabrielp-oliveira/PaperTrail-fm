@@ -170,7 +170,7 @@ func (paper *Paper) GetChapterList(driver *drive.Service, userAccessToken string
 	var list []chapterWithRevisions
 	for rows.Next() {
 		var chapter chapterWithRevisions
-		if err := rows.Scan(&chapter.Id, &chapter.Name, &chapter.Description, &chapter.CreatedAt, &chapter.PaperID, &chapter.Order); err != nil {
+		if err := rows.Scan(&chapter.Id, &chapter.Name, &chapter.Description, &chapter.Created_At, &chapter.PaperID, &chapter.Order); err != nil {
 			return nil, err
 		}
 		revisions, _ := driver.Revisions.List(chapter.Id).Do()
